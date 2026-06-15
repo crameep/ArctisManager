@@ -26,11 +26,12 @@ The response varies depending on the list, but it will always return a list of o
 - **Response format**: JSON
 - **Specs**:
 
-The response has five sections:
+The response has six sections:
 - `general`: for general (cross-device) settings.
 - `device`: for device-specific settings. Will be an empty object if no device is connected.
 - `profiles`: available and active named profiles for the connected device.
 - `audio_endpoints`: virtual endpoint catalog plus current PulseAudio/PipeWire-pulse state.
+- `application_routes`: active application playback streams and their current output route.
 - `settings_config`: the definition for each setting, defining type, default_value and other arguments depending on the type. See **YAML's device.settings.[section].[setting] types**.
 
 The clients shouldn't hard-core the settings, but read them and parse them depending on the `settings_config` section.
@@ -61,6 +62,21 @@ The clients shouldn't hard-core the settings, but read them and parse them depen
             "present": true,
             "default": true,
             "description": "Nova Pro Game"
+        }
+    ],
+    "application_routes": [
+        {
+            "stream_index": 55,
+            "name": "Firefox",
+            "application_name": "Firefox",
+            "process_binary": "firefox",
+            "process_id": "1234",
+            "sink_index": 10,
+            "sink_node_name": "Arctis_Game",
+            "sink_description": "Nova Pro Game",
+            "current_endpoint_node_name": "Arctis_Game",
+            "current_endpoint_label": "Game",
+            "routable": true
         }
     ],
     "settings_config": {
@@ -129,6 +145,32 @@ Returns the virtual endpoint catalog with current PulseAudio/PipeWire-pulse stat
     }
 ]
 ```
+
+### Method: GetApplicationRoutes
+- **Parameters**: (none)
+- **Response format**: JSON
+- **Specs**:
+
+Returns active application playback streams. Streams without application identity are omitted to avoid showing internal loopback streams.
+
+```json
+[
+    {
+        "stream_index": 55,
+        "application_name": "Firefox",
+        "sink_node_name": "Arctis_Game",
+        "current_endpoint_label": "Game",
+        "routable": true
+    }
+]
+```
+
+### Method: MoveApplicationRoute
+- **Parameters**: stream_index: unsigned integer, endpoint_node_name: string
+- **Response format**: boolean
+- **Specs**:
+
+Moves one active playback stream to an implemented virtual output sink such as `Arctis_Game`, `Arctis_Chat`, `Arctis_Media`, or `Arctis_Aux`. Returns false when the stream cannot be moved or the endpoint is unsupported/missing.
 
 ### Method: ListProfiles
 - **Parameters**: (none)

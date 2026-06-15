@@ -183,3 +183,12 @@ class DbusWrapper(QObject):
         iface = await self.settings_iface()
         await iface.call_load_profile(name) # type: ignore
         self.request_settings()
+
+    def move_application_route(self, stream_index: int, endpoint_node_name: str) -> None:
+        request_thread = Thread(target=lambda: asyncio.run(self._move_application_route_async(stream_index, endpoint_node_name)))
+        request_thread.start()
+
+    async def _move_application_route_async(self, stream_index: int, endpoint_node_name: str):
+        iface = await self.settings_iface()
+        await iface.call_move_application_route(stream_index, endpoint_node_name) # type: ignore
+        self.request_settings()

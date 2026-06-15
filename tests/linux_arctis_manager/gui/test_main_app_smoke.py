@@ -85,9 +85,13 @@ def test_routing_page_updates_from_audio_endpoint_metadata():
 
     class FakeDbusWrapper:
         requested_settings = False
+        moved_route = None
 
         def request_settings(self):
             self.requested_settings = True
+
+        def move_application_route(self, stream_index, endpoint_node_name):
+            self.moved_route = (stream_index, endpoint_node_name)
 
         def stop(self):
             pass
@@ -147,6 +151,21 @@ def test_routing_page_updates_from_audio_endpoint_metadata():
                 'description': '',
             },
         ],
+        'application_routes': [
+            {
+                'stream_index': 55,
+                'name': 'Firefox',
+                'application_name': 'Firefox',
+                'process_binary': 'firefox',
+                'process_id': '1234',
+                'sink_index': 1,
+                'sink_node_name': 'Arctis_Game',
+                'sink_description': 'Nova Game',
+                'current_endpoint_node_name': 'Arctis_Game',
+                'current_endpoint_label': 'Game',
+                'routable': True,
+            },
+        ],
     })
     window_app.switch_panel('routing')
     app.processEvents()
@@ -156,9 +175,15 @@ def test_routing_page_updates_from_audio_endpoint_metadata():
     assert window_app.routing_detail_labels['Arctis_Game'].text() == 'Virtual output present: Nova Game'
     assert window_app.routing_state_labels['Arctis_Chat'].text() == 'Missing'
     assert window_app.routing_state_labels['Arctis_Microphone'].text() == 'Planned'
+    assert window_app.route_app_stream_combo.currentData() == 55
+    assert window_app.route_endpoint_combo.currentData() == 'Arctis_Game'
+    assert window_app.assign_route_button.isEnabled()
+    assert window_app.application_route_status_label.text() == '1 active app stream(s) can be assigned.'
 
     window_app._on_refresh_routing_clicked()
+    window_app._on_assign_route_clicked()
 
     assert fake_dbus.requested_settings is True
+    assert fake_dbus.moved_route == (55, 'Arctis_Game')
 
     window_app.sig_stop()

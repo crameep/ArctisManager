@@ -52,6 +52,7 @@ class QMainApp(QBaseDesktopApp):
         self.dashboard_status_card.layout().addWidget(self.status_widget)
         self._refresh_profile_state({})
         self._refresh_routing_state({})
+        self._refresh_application_routes({})
 
         if self.dbus_wrapper:
             from linux_arctis_manager.gui.settings_widget import QSettingsWidget
@@ -270,6 +271,28 @@ class QMainApp(QBaseDesktopApp):
         header.layout().addWidget(self.refresh_routing_button)
         layout.addWidget(header)
 
+        planned = self._card('Per-App Routing')
+        planned.layout().addWidget(self._muted_label(
+            'Move active application streams into Game, Chat, Media, or Aux virtual outputs.'
+        ))
+
+        self.route_app_stream_combo = QComboBox()
+        self.route_app_stream_combo.setObjectName('routeCombo')
+        planned.layout().addWidget(self.route_app_stream_combo)
+
+        self.route_endpoint_combo = QComboBox()
+        self.route_endpoint_combo.setObjectName('routeCombo')
+        planned.layout().addWidget(self.route_endpoint_combo)
+
+        self.assign_route_button = QPushButton('Assign selected stream')
+        self.assign_route_button.setObjectName('primaryAction')
+        self.assign_route_button.clicked.connect(self._on_assign_route_clicked)
+        planned.layout().addWidget(self.assign_route_button)
+
+        self.application_route_status_label = self._muted_label('Waiting for active application streams.')
+        planned.layout().addWidget(self.application_route_status_label)
+        layout.addWidget(planned)
+
         route_grid = QGridLayout()
         route_grid.setSpacing(14)
         layout.addLayout(route_grid)
@@ -289,13 +312,6 @@ class QMainApp(QBaseDesktopApp):
             card.layout().addWidget(detail_label)
             self.routing_detail_labels[endpoint.node_name] = detail_label
             route_grid.addWidget(card, index // 2, index % 2)
-
-        planned = self._card('Per-App Routing')
-        planned.layout().addWidget(self._muted_label(
-            'Prepared for native PipeWire/WirePlumber integration. Applications are not moved yet.'
-        ))
-        planned.layout().addWidget(self._disabled_action('Assign app to endpoint - planned'))
-        layout.addWidget(planned)
 
         return page
 
@@ -448,6 +464,7 @@ class QMainApp(QBaseDesktopApp):
         self.service_status_label.setText('D-Bus settings connected')
         self._refresh_profile_state(settings)
         self._refresh_routing_state(settings)
+        self._refresh_application_routes(settings)
 
     def on_status_received(self, status):
         if status == self.status:
@@ -593,6 +610,73 @@ class QMainApp(QBaseDesktopApp):
         self.routing_status_label.setText('Refresh requested.')
         self.dbus_wrapper.request_settings()
 
+    def _refresh_application_routes(self, settings: dict) -> None:
+        routes = settings.get('application_routes', [])
+        endpoint_states = settings.get('audio_endpoints', [])
+        if not isinstance(routes, list):
+            routes = []
+        if not isinstance(endpoint_states, list):
+            endpoint_states = []
+
+        valid_routes = [
+            route
+            for route in routes
+            if isinstance(route, dict) and isinstance(route.get('stream_index'), int)
+        ]
+        available_endpoints = [
+            endpoint
+            for endpoint in endpoint_states
+            if isinstance(endpoint, dict)
+            and endpoint.get('kind') == 'sink'
+            and endpoint.get('implemented') is True
+            and endpoint.get('present') is True
+            and isinstance(endpoint.get('node_name'), str)
+        ]
+
+        self.route_app_stream_combo.clear()
+        if valid_routes:
+            for route in valid_routes:
+                app_name = route.get('application_name') or route.get('name') or 'Unknown app'
+                current = route.get('current_endpoint_label') or route.get('sink_description') or route.get('sink_node_name') or 'current output'
+                self.route_app_stream_combo.addItem(f'{app_name} -> {current}', route['stream_index'])
+        else:
+            self.route_app_stream_combo.addItem('No active app streams', -1)
+
+        self.route_endpoint_combo.clear()
+        if available_endpoints:
+            for endpoint in available_endpoints:
+                self.route_endpoint_combo.addItem(f"{endpoint.get('label', endpoint['node_name'])} ({endpoint['node_name']})", endpoint['node_name'])
+        else:
+            self.route_endpoint_combo.addItem('No virtual outputs ready', '')
+
+        controls_enabled = bool(self.dbus_wrapper) and bool(valid_routes) and bool(available_endpoints)
+        self.route_app_stream_combo.setEnabled(controls_enabled)
+        self.route_endpoint_combo.setEnabled(controls_enabled)
+        self.assign_route_button.setEnabled(controls_enabled)
+
+        if not self.dbus_wrapper:
+            self.application_route_status_label.setText('Demo mode: app routing needs the D-Bus service.')
+        elif not valid_routes:
+            self.application_route_status_label.setText('No active application streams are currently available to route.')
+        elif not available_endpoints:
+            self.application_route_status_label.setText('No implemented virtual outputs are ready yet.')
+        else:
+            self.application_route_status_label.setText(f'{len(valid_routes)} active app stream(s) can be assigned.')
+
+    def _on_assign_route_clicked(self) -> None:
+        if not self.dbus_wrapper:
+            self.application_route_status_label.setText('D-Bus service is required to assign app routes.')
+            return
+
+        stream_index = self.route_app_stream_combo.currentData()
+        endpoint_node_name = self.route_endpoint_combo.currentData()
+        if not isinstance(stream_index, int) or stream_index < 0 or not endpoint_node_name:
+            self.application_route_status_label.setText('Choose an active stream and a ready virtual output first.')
+            return
+
+        self.application_route_status_label.setText('Route assignment requested.')
+        self.dbus_wrapper.move_application_route(stream_index, endpoint_node_name)
+
     def _stylesheet(self) -> str:
         return '''
             #mainWindow {
@@ -647,7 +731,7 @@ class QMainApp(QBaseDesktopApp):
                 padding: 8px 10px;
                 text-align: left;
             }
-            #primaryAction, #secondaryAction, #profileNameInput, #profileCombo {
+            #primaryAction, #secondaryAction, #profileNameInput, #profileCombo, #routeCombo {
                 border-radius: 8px;
                 font-size: 13px;
                 min-height: 34px;
@@ -670,12 +754,12 @@ class QMainApp(QBaseDesktopApp):
                 border: 1px solid #2e3c4d;
                 color: #7f92a5;
             }
-            #profileNameInput, #profileCombo {
+            #profileNameInput, #profileCombo, #routeCombo {
                 background: #0f1419;
                 border: 1px solid #34465a;
                 color: #edf2f7;
             }
-            #profileNameInput:disabled, #profileCombo:disabled {
+            #profileNameInput:disabled, #profileCombo:disabled, #routeCombo:disabled {
                 color: #7f92a5;
             }
             #card {

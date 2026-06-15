@@ -103,6 +103,13 @@ class ArctisManagerDbusSettingsService(ServiceInterface):
             self.logger.warning('Failed to read audio endpoint state: %s', e)
             return []
 
+    def _application_route_metadata(self) -> list[dict]:
+        try:
+            return self.core_engine.pa_audio_manager.application_routes()
+        except pulsectl.PulseError as e:
+            self.logger.warning('Failed to read application route state: %s', e)
+            return []
+
     def _device_setting_config(self, setting: str) -> ConfigSetting | None:
         if self.core_engine.device_config is None:
             return None
@@ -127,6 +134,7 @@ class ArctisManagerDbusSettingsService(ServiceInterface):
             'device': {},
             'profiles': self._profile_metadata(),
             'audio_endpoints': self._audio_endpoint_metadata(),
+            'application_routes': self._application_route_metadata(),
             'settings_config': {
                 config.name: config.to_dict()
                 for config in self.core_engine.general_settings.settings_config
@@ -155,6 +163,18 @@ class ArctisManagerDbusSettingsService(ServiceInterface):
     @method('GetAudioEndpoints')
     def get_audio_endpoints(self) -> 's': # type: ignore
         return json.dumps(self._audio_endpoint_metadata())
+
+    @method('GetApplicationRoutes')
+    def get_application_routes(self) -> 's': # type: ignore
+        return json.dumps(self._application_route_metadata())
+
+    @method('MoveApplicationRoute')
+    def move_application_route(self, stream_index: 'u', endpoint_node_name: 's') -> 'b': # type: ignore
+        result = self.core_engine.pa_audio_manager.move_application_route(stream_index, endpoint_node_name)
+        if result:
+            self.signal_settings_changed(self.settings_to_json(self.core_engine.general_settings, self.core_engine.device_config, self.core_engine.device_settings))
+
+        return result
     
     @method('SetSetting')
     def set_setting(self, setting: 's', value: 's') -> 'b': # type: ignore

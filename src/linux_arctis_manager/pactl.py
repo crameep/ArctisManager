@@ -18,6 +18,12 @@ class TypedPulseSinkInfo(pulsectl.PulseSinkInfo):
     name: str
 
 
+class TypedPulseSinkInputInfo(pulsectl.PulseSinkInputInfo):
+    index: int
+    name: str
+    sink: int
+
+
 class PulseAudioManager:
     _instance: 'PulseAudioManager|None' = None
 
@@ -172,6 +178,92 @@ class PulseAudioManager:
             })
 
         return result
+
+    def application_routes(self) -> list[dict[str, Any]]:
+        try:
+            sinks = self.pulse.sink_list()
+            sink_inputs = self.pulse.sink_input_list()
+        except pulsectl.PulseError as e:
+            self.logger.warning('Failed to read active application routes: %s', e)
+            return []
+
+        if sinks is None:
+            sinks = []
+        if sink_inputs is None:
+            sink_inputs = []
+
+        sinks = sinks if type(sinks) is list else [sinks] # pyright: ignore[reportAssignmentType]
+        sink_inputs = sink_inputs if type(sink_inputs) is list else [sink_inputs] # pyright: ignore[reportAssignmentType]
+
+        sinks_by_index = {getattr(sink, 'index', -1): sink for sink in sinks}
+        virtual_sinks_by_node_name = {
+            sink.proplist.get('node.name', ''): sink
+            for sink in sinks
+            if sink.proplist.get('node.name', '') in VIRTUAL_SINK_NODE_NAMES
+        }
+
+        result = []
+        for stream in sink_inputs:
+            app_name = stream.proplist.get('application.name') or stream.proplist.get('application.process.binary')
+            if not app_name:
+                continue
+
+            sink = sinks_by_index.get(getattr(stream, 'sink', -1))
+            sink_node_name = sink.proplist.get('node.name', '') if sink else ''
+            sink_description = sink.proplist.get('node.description', '') if sink else ''
+            current_endpoint = next((
+                endpoint
+                for endpoint in VIRTUAL_SINK_ENDPOINTS
+                if endpoint.node_name == sink_node_name
+            ), None)
+
+            result.append({
+                'stream_index': getattr(stream, 'index', -1),
+                'name': getattr(stream, 'name', '') or app_name,
+                'application_name': app_name,
+                'process_binary': stream.proplist.get('application.process.binary', ''),
+                'process_id': stream.proplist.get('application.process.id', ''),
+                'sink_index': getattr(stream, 'sink', -1),
+                'sink_node_name': sink_node_name,
+                'sink_description': sink_description,
+                'current_endpoint_node_name': current_endpoint.node_name if current_endpoint else '',
+                'current_endpoint_label': current_endpoint.label if current_endpoint else '',
+                'routable': bool(virtual_sinks_by_node_name),
+            })
+
+        return result
+
+    def move_application_route(self, stream_index: int, endpoint_node_name: str) -> bool:
+        if endpoint_node_name not in VIRTUAL_SINK_NODE_NAMES:
+            self.logger.warning('Refusing to route stream %s to unsupported endpoint %s', stream_index, endpoint_node_name)
+            return False
+
+        try:
+            sinks = self.pulse.sink_list()
+        except pulsectl.PulseError as e:
+            self.logger.warning('Failed to read sinks before moving stream: %s', e)
+            return False
+
+        if sinks is None:
+            sinks = []
+        sinks = sinks if type(sinks) is list else [sinks] # pyright: ignore[reportAssignmentType]
+
+        sink = next((
+            sink
+            for sink in sinks
+            if sink.proplist.get('node.name', '') == endpoint_node_name
+        ), None)
+        if sink is None:
+            self.logger.warning('Refusing to route stream %s because endpoint %s is missing', stream_index, endpoint_node_name)
+            return False
+
+        try:
+            self.pulse.sink_input_move(stream_index, sink.index)
+        except pulsectl.PulseError as e:
+            self.logger.warning('Failed to route stream %s to %s: %s', stream_index, endpoint_node_name, e)
+            return False
+
+        return True
 
     def set_mix(self, media_mix: int, chat_mix: int):
         if media_mix > 100:

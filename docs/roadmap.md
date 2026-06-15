@@ -4,7 +4,7 @@
 
 The project already has a Python daemon, D-Bus service, PySide GUI, CLI setup tools, udev rule generation, per-device YAML configurations, named per-device profile persistence, and virtual audio output sinks through PulseAudio compatibility.
 
-The first routing expansion adds a Sonar-style endpoint catalog for Game, Chat, Media, Aux, and a planned Microphone source. Game, Chat, Media, and Aux are implemented as virtual output sinks and their present/default state is exposed over D-Bus. Microphone is intentionally marked as planned until a safe source implementation exists.
+The first routing expansion adds a Sonar-style endpoint catalog for Game, Chat, Media, Aux, and a planned Microphone source. Game, Chat, Media, and Aux are implemented as virtual output sinks, their present/default state is exposed over D-Bus, and active app playback streams can be reassigned to ready virtual outputs. Microphone is intentionally marked as planned until a safe source implementation exists.
 
 The first UI expansion adds a dashboard-first PySide shell with mixer, routing, device, profiles, and settings pages. It is inspired by modern audio control workflows, but uses original layout, naming, and iconography and remains clearly unaffiliated with SteelSeries. Developers can preview the shell without a running daemon by launching `lam-gui --demo`.
 
@@ -18,13 +18,13 @@ The first UI expansion adds a dashboard-first PySide shell with mixer, routing, 
 - Save and load named per-device profiles.
 - Create virtual Game, Chat, Media, and Aux output sinks.
 - Expose audio endpoint state over D-Bus.
+- Move active application streams to ready virtual outputs.
 - Apply ChatMix to Chat separately from Game, Media, and Aux.
 - Keep the GUI driven by D-Bus settings/status metadata.
 
 ## Beta
 
 - Add native PipeWire/WirePlumber backend support.
-- Add per-app routing commands and GUI controls.
 - Add route persistence by application identity.
 - Add stronger mock coverage for PulseAudio/PipeWire and USB flows.
 - Replace any non-original branding assets with project-owned artwork.
