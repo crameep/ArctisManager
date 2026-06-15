@@ -26,10 +26,11 @@ The response varies depending on the list, but it will always return a list of o
 - **Response format**: JSON
 - **Specs**:
 
-The response has four sections:
+The response has five sections:
 - `general`: for general (cross-device) settings.
 - `device`: for device-specific settings. Will be an empty object if no device is connected.
 - `profiles`: available and active named profiles for the connected device.
+- `audio_endpoints`: virtual endpoint catalog plus current PulseAudio/PipeWire-pulse state.
 - `settings_config`: the definition for each setting, defining type, default_value and other arguments depending on the type. See **YAML's device.settings.[section].[setting] types**.
 
 The clients shouldn't hard-core the settings, but read them and parse them depending on the `settings_config` section.
@@ -50,6 +51,18 @@ The clients shouldn't hard-core the settings, but read them and parse them depen
         "available": ["Default", "Late Night"],
         "active": "Late Night"
     },
+    "audio_endpoints": [
+        {
+            "node_name": "Arctis_Game",
+            "label": "Game",
+            "kind": "sink",
+            "mix_group": "media",
+            "implemented": true,
+            "present": true,
+            "default": true,
+            "description": "Nova Pro Game"
+        }
+    ],
     "settings_config": {
         "toggle_setting": {
             "type": "toggle",
@@ -94,6 +107,28 @@ The clients shouldn't hard-core the settings, but read them and parse them depen
 Writes the setting. Searches the setting first in the general settings and then, if not found, in the device's.
 
 Returns boolean (true: setting saved, false: setting not found / not saved)
+
+### Method: GetAudioEndpoints
+- **Parameters**: (none)
+- **Response format**: JSON
+- **Specs**:
+
+Returns the virtual endpoint catalog with current PulseAudio/PipeWire-pulse state. Implemented output sinks report whether they are present and whether they are the default output. Planned endpoints remain listed with `implemented: false`.
+
+```json
+[
+    {
+        "node_name": "Arctis_Game",
+        "label": "Game",
+        "kind": "sink",
+        "mix_group": "media",
+        "implemented": true,
+        "present": true,
+        "default": true,
+        "description": "Nova Pro Game"
+    }
+]
+```
 
 ### Method: ListProfiles
 - **Parameters**: (none)

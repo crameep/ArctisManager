@@ -51,6 +51,7 @@ class QMainApp(QBaseDesktopApp):
         self.status_widget = QStatusWidget(self.dashboard_status_card)
         self.dashboard_status_card.layout().addWidget(self.status_widget)
         self._refresh_profile_state({})
+        self._refresh_routing_state({})
 
         if self.dbus_wrapper:
             from linux_arctis_manager.gui.settings_widget import QSettingsWidget
@@ -260,15 +261,33 @@ class QMainApp(QBaseDesktopApp):
     def _build_routing_page(self) -> QWidget:
         page, layout = self._scroll_page()
 
+        header = self._card('Endpoint State')
+        self.routing_status_label = self._muted_label('Waiting for D-Bus endpoint state.')
+        header.layout().addWidget(self.routing_status_label)
+        self.refresh_routing_button = QPushButton('Refresh endpoint state')
+        self.refresh_routing_button.setObjectName('secondaryAction')
+        self.refresh_routing_button.clicked.connect(self._on_refresh_routing_clicked)
+        header.layout().addWidget(self.refresh_routing_button)
+        layout.addWidget(header)
+
         route_grid = QGridLayout()
         route_grid.setSpacing(14)
         layout.addLayout(route_grid)
 
+        self.routing_state_labels: dict[str, QLabel] = {}
+        self.routing_detail_labels: dict[str, QLabel] = {}
         for index, endpoint in enumerate(VIRTUAL_AUDIO_ENDPOINTS):
             card = self._card(endpoint.label)
             card.layout().addWidget(QLabel(endpoint.node_name))
-            card.layout().addWidget(self._muted_label('Implemented' if endpoint.implemented else 'Planned'))
-            card.layout().addWidget(self._muted_label('Output sink' if endpoint.kind == 'sink' else 'Input source'))
+
+            state_label = QLabel('Planned' if not endpoint.implemented else 'Waiting')
+            state_label.setObjectName('routeState')
+            card.layout().addWidget(state_label)
+            self.routing_state_labels[endpoint.node_name] = state_label
+
+            detail_label = self._muted_label('Output sink' if endpoint.kind == 'sink' else 'Input source')
+            card.layout().addWidget(detail_label)
+            self.routing_detail_labels[endpoint.node_name] = detail_label
             route_grid.addWidget(card, index // 2, index % 2)
 
         planned = self._card('Per-App Routing')
@@ -428,6 +447,7 @@ class QMainApp(QBaseDesktopApp):
         self.settings = settings
         self.service_status_label.setText('D-Bus settings connected')
         self._refresh_profile_state(settings)
+        self._refresh_routing_state(settings)
 
     def on_status_received(self, status):
         if status == self.status:
@@ -512,6 +532,66 @@ class QMainApp(QBaseDesktopApp):
         self.profile_name_input.setText(profile_name)
         self.profile_status_label.setText(f'Load requested for "{profile_name}".')
         self.dbus_wrapper.load_profile(profile_name)
+
+    def _refresh_routing_state(self, settings: dict) -> None:
+        endpoint_states = settings.get('audio_endpoints', [])
+        if not isinstance(endpoint_states, list):
+            endpoint_states = []
+
+        states_by_node = {
+            state.get('node_name'): state
+            for state in endpoint_states
+            if isinstance(state, dict) and isinstance(state.get('node_name'), str)
+        }
+
+        ready_count = 0
+        missing_count = 0
+        for endpoint in VIRTUAL_AUDIO_ENDPOINTS:
+            state = states_by_node.get(endpoint.node_name, {})
+            state_label = self.routing_state_labels.get(endpoint.node_name)
+            detail_label = self.routing_detail_labels.get(endpoint.node_name)
+            if not state_label or not detail_label:
+                continue
+
+            if not endpoint.implemented:
+                state_label.setText('Planned')
+                detail_label.setText('Input source reserved for future microphone routing.')
+                continue
+
+            if not state:
+                state_label.setText('Unknown')
+                detail_label.setText('Waiting for endpoint state from the D-Bus service.')
+                continue
+
+            present = bool(state.get('present'))
+            is_default = bool(state.get('default'))
+            description = state.get('description') or endpoint.node_name
+
+            if present:
+                ready_count += 1
+                state_label.setText('Ready / Default' if is_default else 'Ready')
+                detail_label.setText(f'Virtual output present: {description}')
+            else:
+                missing_count += 1
+                state_label.setText('Missing')
+                detail_label.setText('Created when a supported headset and PulseAudio/PipeWire-pulse are available.')
+
+        if endpoint_states:
+            self.routing_status_label.setText(f'{ready_count} virtual outputs ready, {missing_count} missing.')
+        elif self.dbus_wrapper:
+            self.routing_status_label.setText('No endpoint state received yet. Use refresh after connecting a headset.')
+        else:
+            self.routing_status_label.setText('Demo mode: endpoint state needs the D-Bus service.')
+
+        self.refresh_routing_button.setEnabled(bool(self.dbus_wrapper))
+
+    def _on_refresh_routing_clicked(self) -> None:
+        if not self.dbus_wrapper:
+            self.routing_status_label.setText('D-Bus service is required to refresh endpoint state.')
+            return
+
+        self.routing_status_label.setText('Refresh requested.')
+        self.dbus_wrapper.request_settings()
 
     def _stylesheet(self) -> str:
         return '''
@@ -606,6 +686,11 @@ class QMainApp(QBaseDesktopApp):
             #cardTitle {
                 color: #f8fafc;
                 font-size: 15px;
+                font-weight: 700;
+            }
+            #routeState {
+                color: #ffffff;
+                font-size: 18px;
                 font-weight: 700;
             }
             #summaryValue {

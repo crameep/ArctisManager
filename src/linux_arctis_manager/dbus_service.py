@@ -3,6 +3,7 @@ import itertools
 import json
 import logging
 
+import pulsectl
 from dbus_next.aio.message_bus import MessageBus
 from dbus_next.service import ServiceInterface, method, signal
 
@@ -95,6 +96,13 @@ class ArctisManagerDbusSettingsService(ServiceInterface):
 
         return store.metadata() if store else {'available': [], 'active': 'Default'}
 
+    def _audio_endpoint_metadata(self) -> list[dict]:
+        try:
+            return self.core_engine.pa_audio_manager.virtual_endpoint_statuses()
+        except pulsectl.PulseError as e:
+            self.logger.warning('Failed to read audio endpoint state: %s', e)
+            return []
+
     def _device_setting_config(self, setting: str) -> ConfigSetting | None:
         if self.core_engine.device_config is None:
             return None
@@ -118,6 +126,7 @@ class ArctisManagerDbusSettingsService(ServiceInterface):
             'general': general_settings.to_dict(),
             'device': {},
             'profiles': self._profile_metadata(),
+            'audio_endpoints': self._audio_endpoint_metadata(),
             'settings_config': {
                 config.name: config.to_dict()
                 for config in self.core_engine.general_settings.settings_config
@@ -142,6 +151,10 @@ class ArctisManagerDbusSettingsService(ServiceInterface):
     @method('GetSettings')
     def get_settings(self) -> 's': # type: ignore
         return self.settings_to_json(self.core_engine.general_settings, self.core_engine.device_config, self.core_engine.device_settings)
+
+    @method('GetAudioEndpoints')
+    def get_audio_endpoints(self) -> 's': # type: ignore
+        return json.dumps(self._audio_endpoint_metadata())
     
     @method('SetSetting')
     def set_setting(self, setting: 's', value: 's') -> 'b': # type: ignore

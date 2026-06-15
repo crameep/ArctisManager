@@ -77,3 +77,88 @@ def test_profiles_page_updates_from_settings_metadata():
     assert fake_dbus.loaded_profile == 'Late Night'
 
     window_app.sig_stop()
+
+
+def test_routing_page_updates_from_audio_endpoint_metadata():
+    app = QApplication.instance() or QApplication([])
+    window_app = QMainApp(app, logging.CRITICAL, demo_mode=True)
+
+    class FakeDbusWrapper:
+        requested_settings = False
+
+        def request_settings(self):
+            self.requested_settings = True
+
+        def stop(self):
+            pass
+
+    fake_dbus = FakeDbusWrapper()
+    window_app.dbus_wrapper = fake_dbus
+    window_app.on_settings_received({
+        'audio_endpoints': [
+            {
+                'node_name': 'Arctis_Game',
+                'label': 'Game',
+                'kind': 'sink',
+                'mix_group': 'media',
+                'implemented': True,
+                'present': True,
+                'default': True,
+                'description': 'Nova Game',
+            },
+            {
+                'node_name': 'Arctis_Chat',
+                'label': 'Chat',
+                'kind': 'sink',
+                'mix_group': 'chat',
+                'implemented': True,
+                'present': False,
+                'default': False,
+                'description': '',
+            },
+            {
+                'node_name': 'Arctis_Media',
+                'label': 'Media',
+                'kind': 'sink',
+                'mix_group': 'media',
+                'implemented': True,
+                'present': False,
+                'default': False,
+                'description': '',
+            },
+            {
+                'node_name': 'Arctis_Aux',
+                'label': 'Aux',
+                'kind': 'sink',
+                'mix_group': 'media',
+                'implemented': True,
+                'present': False,
+                'default': False,
+                'description': '',
+            },
+            {
+                'node_name': 'Arctis_Microphone',
+                'label': 'Microphone',
+                'kind': 'source',
+                'mix_group': 'microphone',
+                'implemented': False,
+                'present': False,
+                'default': False,
+                'description': '',
+            },
+        ],
+    })
+    window_app.switch_panel('routing')
+    app.processEvents()
+
+    assert window_app.routing_status_label.text() == '1 virtual outputs ready, 3 missing.'
+    assert window_app.routing_state_labels['Arctis_Game'].text() == 'Ready / Default'
+    assert window_app.routing_detail_labels['Arctis_Game'].text() == 'Virtual output present: Nova Game'
+    assert window_app.routing_state_labels['Arctis_Chat'].text() == 'Missing'
+    assert window_app.routing_state_labels['Arctis_Microphone'].text() == 'Planned'
+
+    window_app._on_refresh_routing_clicked()
+
+    assert fake_dbus.requested_settings is True
+
+    window_app.sig_stop()

@@ -1,9 +1,11 @@
 import logging
 import time
+from typing import Any
 
 import pulsectl
 
-from linux_arctis_manager.audio_endpoints import (VIRTUAL_SINK_ENDPOINTS,
+from linux_arctis_manager.audio_endpoints import (VIRTUAL_AUDIO_ENDPOINTS,
+                                                  VIRTUAL_SINK_ENDPOINTS,
                                                   VIRTUAL_SINK_NODE_NAMES,
                                                   endpoints_for_mix_group)
 from linux_arctis_manager.constants import STEELSERIES_VENDOR_ID
@@ -135,6 +137,41 @@ class PulseAudioManager:
         sink = next((s for s in self.sink_list_wrapper() if s.proplist.get('node.name', '') == default_sink_name), None)
 
         return sink
+
+    def virtual_endpoint_statuses(self) -> list[dict[str, Any]]:
+        try:
+            sinks = self.pulse.sink_list()
+        except pulsectl.PulseError as e:
+            self.logger.warning('Failed to read virtual audio endpoints: %s', e)
+            sinks = []
+
+        if sinks is None:
+            sinks = []
+        sinks = sinks if type(sinks) is list else [sinks] # pyright: ignore[reportAssignmentType]
+        sinks = [s for s in sinks if s.proplist.get('node.name', '') in VIRTUAL_SINK_NODE_NAMES]
+        sinks_by_node_name = {s.proplist.get('node.name', ''): s for s in sinks}
+
+        default_sink_name = None
+        try:
+            default_sink_name = getattr(self.pulse.server_info(), 'default_sink_name', None)
+        except pulsectl.PulseError as e:
+            self.logger.warning('Failed to read default PulseAudio sink: %s', e)
+
+        result = []
+        for endpoint in VIRTUAL_AUDIO_ENDPOINTS:
+            sink = sinks_by_node_name.get(endpoint.node_name)
+            result.append({
+                'node_name': endpoint.node_name,
+                'label': endpoint.label,
+                'kind': endpoint.kind,
+                'mix_group': endpoint.mix_group,
+                'implemented': endpoint.implemented,
+                'present': sink is not None,
+                'default': sink is not None and sink.proplist.get('node.name', '') == default_sink_name,
+                'description': sink.proplist.get('node.description', '') if sink else '',
+            })
+
+        return result
 
     def set_mix(self, media_mix: int, chat_mix: int):
         if media_mix > 100:

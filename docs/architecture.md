@@ -33,6 +33,8 @@ The planned input endpoint is:
 
 Only output sinks are currently implemented. Each output sink is created as a null sink and looped back to the physical headset sink. ChatMix is modeled as two mix groups: `chat` applies to `Arctis_Chat`, while `media` applies to `Arctis_Game`, `Arctis_Media`, and `Arctis_Aux`.
 
+The D-Bus settings service exposes the virtual endpoint catalog and current PulseAudio/PipeWire-pulse state. GUI clients can show whether each implemented virtual output is present, missing, or the current default output without talking to PulseAudio directly.
+
 ## Configuration And Profiles
 
 Device capabilities are data-driven. YAML files define vendor/product IDs, USB command/listen interfaces, init packets, status parsers, setting controls, and UI grouping.
@@ -43,7 +45,7 @@ Named per-device profiles are stored separately in `~/.config/arctis_manager/pro
 
 ## GUI And CLI
 
-The GUI reads D-Bus settings and status dynamically instead of hardcoding device-specific controls. The Profiles page uses the settings service to save and load named snapshots for the connected device. The CLI currently focuses on setup tasks, udev generation, desktop entries, and USB/HID discovery.
+The GUI reads D-Bus settings, status, profile metadata, and audio endpoint state dynamically instead of hardcoding device-specific controls. The Profiles page uses the settings service to save and load named snapshots for the connected device. The Routing page uses the same service to show virtual output readiness and to refresh endpoint state on demand. The CLI currently focuses on setup tasks, udev generation, desktop entries, and USB/HID discovery.
 
 ## Testing Strategy
 
@@ -54,5 +56,4 @@ Hardware-dependent behavior should stay behind mockable interfaces. Existing tes
 - Add a native PipeWire/WirePlumber backend alongside the PulseAudio compatibility backend.
 - Add per-app routing inspection and reassignment.
 - Implement a virtual microphone source.
-- Expose audio endpoints and routing state over D-Bus.
 - Keep USB packet handling data-driven and avoid risky reverse-engineering practices.
