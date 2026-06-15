@@ -33,6 +33,9 @@ class DbusWrapper(QObject):
         self._stop_status_signal_future: asyncio.Future|None = None
 
         self._status_iface: ProxyInterface|None = None
+        self._settings_iface: ProxyInterface|None = None
+        self._settings_signal_loop: asyncio.AbstractEventLoop|None = None
+        self._stop_settings_signal_future: asyncio.Future|None = None
 
     async def status_iface(self):
         if not self._status_iface:
@@ -44,13 +47,13 @@ class DbusWrapper(QObject):
         return self._status_iface
 
     async def settings_iface(self):
-        if not self._status_iface:
+        if not self._settings_iface:
             bus = await MessageBus().connect()
             introspection = await bus.introspect(DBUS_BUS_NAME, DBUS_SETTINGS_OBJECT_PATH)
             obj = bus.get_proxy_object(DBUS_BUS_NAME, DBUS_SETTINGS_OBJECT_PATH, introspection)
-            self._status_iface = obj.get_interface(DBUS_SETTINGS_INTERFACE_NAME)
+            self._settings_iface = obj.get_interface(DBUS_SETTINGS_INTERFACE_NAME)
 
-        return self._status_iface
+        return self._settings_iface
 
     def start(self):
         self.request_status()
@@ -58,6 +61,8 @@ class DbusWrapper(QObject):
 
         status_signal_thread = Thread(target=lambda: asyncio.run(self._register_status_dbus_signal()))
         status_signal_thread.start()
+        settings_signal_thread = Thread(target=lambda: asyncio.run(self._register_settings_dbus_signal()))
+        settings_signal_thread.start()
     
     async def _register_status_dbus_signal(self):
         def callback(status: str) -> None:
@@ -69,11 +74,23 @@ class DbusWrapper(QObject):
         self._stop_status_signal_future = self._status_signal_loop.create_future()
         await self._stop_status_signal_future
 
+    async def _register_settings_dbus_signal(self):
+        def callback(settings: str) -> None:
+            self.sig_settings.emit(json.loads(settings) or {})
+
+        (await self.settings_iface()).on_settings_changed(callback) # type: ignore
+
+        self._settings_signal_loop = asyncio.get_running_loop()
+        self._stop_settings_signal_future = self._settings_signal_loop.create_future()
+        await self._stop_settings_signal_future
+
     def stop(self):
         self.logger.info("Stopping D-Bus wrapper...")
         self._stopping = True
         if self._status_signal_loop and self._stop_status_signal_future:
             self._status_signal_loop.call_soon_threadsafe(self._stop_status_signal_future.set_result, None)
+        if self._settings_signal_loop and self._stop_settings_signal_future:
+            self._settings_signal_loop.call_soon_threadsafe(self._stop_settings_signal_future.set_result, None)
 
     def request_status(self) -> None:
         request_thread = Thread(target=lambda: asyncio.run(self._request_status_async()))
@@ -148,4 +165,21 @@ class DbusWrapper(QObject):
             signature='ss',
             body=[name, json.dumps(value)],
         ))
-    
+
+    def save_profile(self, name: str) -> None:
+        request_thread = Thread(target=lambda: asyncio.run(self._save_profile_async(name)))
+        request_thread.start()
+
+    async def _save_profile_async(self, name: str):
+        iface = await self.settings_iface()
+        await iface.call_save_profile(name) # type: ignore
+        self.request_settings()
+
+    def load_profile(self, name: str) -> None:
+        request_thread = Thread(target=lambda: asyncio.run(self._load_profile_async(name)))
+        request_thread.start()
+
+    async def _load_profile_async(self, name: str):
+        iface = await self.settings_iface()
+        await iface.call_load_profile(name) # type: ignore
+        self.request_settings()

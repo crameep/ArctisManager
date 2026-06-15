@@ -26,9 +26,10 @@ The response varies depending on the list, but it will always return a list of o
 - **Response format**: JSON
 - **Specs**:
 
-The response has three sections:
+The response has four sections:
 - `general`: for general (cross-device) settings.
 - `device`: for device-specific settings. Will be an empty object if no device is connected.
+- `profiles`: available and active named profiles for the connected device.
 - `settings_config`: the definition for each setting, defining type, default_value and other arguments depending on the type. See **YAML's device.settings.[section].[setting] types**.
 
 The clients shouldn't hard-core the settings, but read them and parse them depending on the `settings_config` section.
@@ -44,6 +45,10 @@ The clients shouldn't hard-core the settings, but read them and parse them depen
         "setting_a": 10,
         "setting_b": 0,
         "setting_c": 10
+    },
+    "profiles": {
+        "available": ["Default", "Late Night"],
+        "active": "Late Night"
     },
     "settings_config": {
         "toggle_setting": {
@@ -81,14 +86,42 @@ The clients shouldn't hard-core the settings, but read them and parse them depen
 }
 ```
 
-### Method: SetSettings
+### Method: SetSetting
 - **Parameters**: setting: string, value: string (JSON format)
-- **Response format**: JSON
+- **Response format**: boolean
 - **Specs**:
 
 Writes the setting. Searches the setting first in the general settings and then, if not found, in the device's.
 
 Returns boolean (true: setting saved, false: setting not found / not saved)
+
+### Method: ListProfiles
+- **Parameters**: (none)
+- **Response format**: JSON
+- **Specs**:
+
+Returns profile metadata for the connected device.
+
+```json
+{
+    "available": ["Default", "Late Night"],
+    "active": "Late Night"
+}
+```
+
+### Method: SaveProfile
+- **Parameters**: profile_name: string
+- **Response format**: boolean
+- **Specs**:
+
+Saves the current connected-device settings as a named profile. Returns false if there is no connected device, no device settings, or the profile name is invalid.
+
+### Method: LoadProfile
+- **Parameters**: profile_name: string
+- **Response format**: boolean
+- **Specs**:
+
+Loads a named profile for the connected device, applies compatible settings through the normal device-setting path, writes the active per-device settings file, and marks the profile active.
 
 ## name.giacomofurlan.ArctisManager.Next.Status
 

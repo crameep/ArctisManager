@@ -2,7 +2,7 @@
 
 ## Current Baseline
 
-The project already has a Python daemon, D-Bus service, PySide GUI, CLI setup tools, udev rule generation, per-device YAML configurations, profile persistence, and virtual audio output sinks through PulseAudio compatibility.
+The project already has a Python daemon, D-Bus service, PySide GUI, CLI setup tools, udev rule generation, per-device YAML configurations, named per-device profile persistence, and virtual audio output sinks through PulseAudio compatibility.
 
 The first routing expansion adds a Sonar-style endpoint catalog for Game, Chat, Media, Aux, and a planned Microphone source. Game, Chat, Media, and Aux are implemented as virtual output sinks. Microphone is intentionally marked as planned until a safe source implementation exists.
 
@@ -15,6 +15,7 @@ The first UI expansion adds a dashboard-first PySide shell with mixer, routing, 
 - Detect supported devices from YAML configuration.
 - Read status for supported models.
 - Persist general and per-device settings.
+- Save and load named per-device profiles.
 - Create virtual Game, Chat, Media, and Aux output sinks.
 - Apply ChatMix to Chat separately from Game, Media, and Aux.
 - Keep the GUI driven by D-Bus settings/status metadata.
@@ -43,5 +44,5 @@ The first UI expansion adds a dashboard-first PySide shell with mixer, routing, 
 - CLI can inspect SteelSeries USB/HID headset candidates.
 - Daemon architecture exists and is D-Bus-backed.
 - Virtual Game, Chat, Media, and Aux outputs are implemented or safely stubbed.
-- Profile storage works through XDG-style config paths.
+- Named profile storage works through XDG-style config paths.
 - Docs describe implemented, planned, and hardware-testing-needed areas.

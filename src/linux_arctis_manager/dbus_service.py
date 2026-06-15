@@ -6,7 +6,7 @@ import logging
 from dbus_next.aio.message_bus import MessageBus
 from dbus_next.service import ServiceInterface, method, signal
 
-from linux_arctis_manager.config import DeviceConfiguration, parsed_status
+from linux_arctis_manager.config import ConfigSetting, DeviceConfiguration, parsed_status
 from linux_arctis_manager.constants import (DBUS_BUS_NAME,
                                             DBUS_CONFIG_INTERFACE_NAME,
                                             DBUS_CONFIG_OBJECT_PATH,
@@ -16,6 +16,7 @@ from linux_arctis_manager.constants import (DBUS_BUS_NAME,
                                             DBUS_STATUS_OBJECT_PATH)
 from linux_arctis_manager.core import CoreEngine
 from linux_arctis_manager.pactl import TypedPulseSinkInfo
+from linux_arctis_manager.profiles import DeviceProfileStore, ProfileValue
 from linux_arctis_manager.settings import DeviceSettings, GeneralSettings
 
 
@@ -81,19 +82,48 @@ class ArctisManagerDbusSettingsService(ServiceInterface):
         super().__init__(DBUS_SETTINGS_INTERFACE_NAME)
         self.core_engine = core
         self.logger = logging.getLogger('ArctisManagerDbusSettingsService')
+
+    def _device_profile_store(self) -> DeviceProfileStore | None:
+        device = self.core_engine.usb_device
+        if device is None:
+            return None
+
+        return DeviceProfileStore(device.idVendor, device.idProduct)
+
+    def _profile_metadata(self) -> dict[str, str | list[str]]:
+        store = self._device_profile_store()
+
+        return store.metadata() if store else {'available': [], 'active': 'Default'}
+
+    def _device_setting_config(self, setting: str) -> ConfigSetting | None:
+        if self.core_engine.device_config is None:
+            return None
+
+        return next((
+            config
+            for section in self.core_engine.device_config.settings.values()
+            for config in section
+            if config.name == setting
+        ), None)
+
+    @staticmethod
+    def _value_matches_config(config: ConfigSetting, value: ProfileValue) -> bool:
+        if config.default_value is None:
+            return True
+
+        return type(config.default_value) == type(value)
     
     def settings_to_json(self, general_settings: GeneralSettings, device_config: DeviceConfiguration|None, device_settings: DeviceSettings|None) -> str:
         settings = {
             'general': general_settings.to_dict(),
             'device': {},
+            'profiles': self._profile_metadata(),
             'settings_config': {
                 config.name: config.to_dict()
                 for config in self.core_engine.general_settings.settings_config
             },
         }
 
-        if device_config and device_settings:
-            settings.update({'device': device_settings.settings})
         if device_config and device_settings:
             settings.update({'device': device_settings.settings})
             settings['settings_config'].update({
@@ -144,12 +174,12 @@ class ArctisManagerDbusSettingsService(ServiceInterface):
         if self.core_engine.device_config and self.core_engine.device_settings:
             device_settings_keys = self.core_engine.device_settings.settings.keys()
             if setting in device_settings_keys:
-                config = next((config for section in self.core_engine.device_config.settings.keys() for config in self.core_engine.device_config.settings[section]), None)
+                config = self._device_setting_config(setting)
                 if not config:
                     self.logger.error(f'Unknown device setting configuration: {setting}')
                     return False
                 
-                if type(config.default_value) != type(value):
+                if not self._value_matches_config(config, value):
                     self.logger.error(f'Value type mismatch: {type(config.default_value)} != {type(value)}')
                     return False
 
@@ -161,6 +191,65 @@ class ArctisManagerDbusSettingsService(ServiceInterface):
                 return True
 
         return False
+
+    @method('ListProfiles')
+    def list_profiles(self) -> 's': # type: ignore
+        return json.dumps(self._profile_metadata())
+
+    @method('SaveProfile')
+    def save_profile(self, profile_name: 's') -> 'b': # type: ignore
+        if self.core_engine.device_settings is None:
+            return False
+
+        store = self._device_profile_store()
+        if store is None:
+            return False
+
+        try:
+            store.save_profile(profile_name, self.core_engine.device_settings.settings.to_dict())
+        except ValueError as e:
+            self.logger.error('SaveProfile: %s', e)
+            return False
+
+        self.core_engine.device_settings.write_to_file()
+        self.signal_settings_changed(self.settings_to_json(self.core_engine.general_settings, self.core_engine.device_config, self.core_engine.device_settings))
+
+        return True
+
+    @method('LoadProfile')
+    def load_profile(self, profile_name: 's') -> 'b': # type: ignore
+        if self.core_engine.device_settings is None:
+            return False
+
+        store = self._device_profile_store()
+        if store is None:
+            return False
+
+        try:
+            profile = store.get_profile(profile_name)
+        except ValueError as e:
+            self.logger.error('LoadProfile: %s', e)
+            return False
+
+        if profile is None:
+            return False
+
+        for setting, value in profile.items():
+            if setting not in self.core_engine.device_settings.settings:
+                continue
+
+            config = self._device_setting_config(setting)
+            if not config or not self._value_matches_config(config, value):
+                self.logger.warning('LoadProfile: skipping incompatible setting %s', setting)
+                continue
+
+            self.core_engine.device_settings.settings[setting] = value
+
+        self.core_engine.device_settings.write_to_file()
+        store.set_active_profile(profile_name)
+        self.signal_settings_changed(self.settings_to_json(self.core_engine.general_settings, self.core_engine.device_config, self.core_engine.device_settings))
+
+        return True
     
     @method('GetListOptions')
     def get_list_options(self, list_name: 's') -> 's': # type: ignore

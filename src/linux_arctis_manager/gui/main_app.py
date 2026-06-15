@@ -3,9 +3,10 @@ from typing import Literal
 
 from PySide6.QtCore import Qt, Slot
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import (QApplication, QFrame, QGridLayout, QHBoxLayout,
-                               QLabel, QPushButton, QScrollArea, QSizePolicy,
-                               QSlider, QStackedWidget, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QApplication, QComboBox, QFrame, QGridLayout,
+                               QHBoxLayout, QLabel, QLineEdit, QPushButton,
+                               QScrollArea, QSizePolicy, QSlider,
+                               QStackedWidget, QVBoxLayout, QWidget)
 
 from linux_arctis_manager.audio_endpoints import VIRTUAL_AUDIO_ENDPOINTS
 from linux_arctis_manager.gui.base_app import QBaseDesktopApp
@@ -49,6 +50,7 @@ class QMainApp(QBaseDesktopApp):
 
         self.status_widget = QStatusWidget(self.dashboard_status_card)
         self.dashboard_status_card.layout().addWidget(self.status_widget)
+        self._refresh_profile_state({})
 
         if self.dbus_wrapper:
             from linux_arctis_manager.gui.settings_widget import QSettingsWidget
@@ -282,17 +284,42 @@ class QMainApp(QBaseDesktopApp):
         page, layout = self._scroll_page()
 
         current = self._card('Current Profile')
-        current.layout().addWidget(QLabel('Default'))
+        self.active_profile_label = QLabel('Default')
+        self.active_profile_label.setObjectName('summaryValue')
+        current.layout().addWidget(self.active_profile_label)
         current.layout().addWidget(self._muted_label(
-            'Per-device YAML settings are persisted today. Named profile save/load is planned.'
+            'Save the current device settings as a named profile, then load it again later.'
         ))
+
+        self.profile_name_input = QLineEdit()
+        self.profile_name_input.setObjectName('profileNameInput')
+        self.profile_name_input.setPlaceholderText('Profile name')
+        self.profile_name_input.setText('Default')
+        current.layout().addWidget(self.profile_name_input)
+
         profile_actions = QWidget()
         profile_action_layout = QHBoxLayout()
         profile_action_layout.setContentsMargins(0, 0, 0, 0)
         profile_actions.setLayout(profile_action_layout)
-        profile_action_layout.addWidget(self._disabled_action('Save profile - planned'))
-        profile_action_layout.addWidget(self._disabled_action('Load profile - planned'))
+
+        self.save_profile_button = QPushButton('Save profile')
+        self.save_profile_button.setObjectName('primaryAction')
+        self.save_profile_button.clicked.connect(self._on_save_profile_clicked)
+        profile_action_layout.addWidget(self.save_profile_button)
+
+        self.profile_combo = QComboBox()
+        self.profile_combo.setObjectName('profileCombo')
+        profile_action_layout.addWidget(self.profile_combo, 1)
+
+        self.load_profile_button = QPushButton('Load profile')
+        self.load_profile_button.setObjectName('secondaryAction')
+        self.load_profile_button.clicked.connect(self._on_load_profile_clicked)
+        profile_action_layout.addWidget(self.load_profile_button)
+
         current.layout().addWidget(profile_actions)
+
+        self.profile_status_label = self._muted_label('Waiting for device settings.')
+        current.layout().addWidget(self.profile_status_label)
         layout.addWidget(current)
 
         future = self._card('Profile Automation')
@@ -400,6 +427,7 @@ class QMainApp(QBaseDesktopApp):
 
         self.settings = settings
         self.service_status_label.setText('D-Bus settings connected')
+        self._refresh_profile_state(settings)
 
     def on_status_received(self, status):
         if status == self.status:
@@ -421,6 +449,69 @@ class QMainApp(QBaseDesktopApp):
             if not slider:
                 continue
             slider.setValue(level)
+
+    def _refresh_profile_state(self, settings: dict) -> None:
+        profiles = settings.get('profiles', {})
+        available = profiles.get('available', [])
+        active = profiles.get('active', 'Default')
+        has_device_settings = bool(settings.get('device'))
+
+        if not isinstance(available, list):
+            available = []
+        if not isinstance(active, str):
+            active = 'Default'
+
+        self.active_profile_label.setText(active)
+        if self.profile_name_input.text().strip() in ('', 'Default'):
+            self.profile_name_input.setText(active)
+
+        self.profile_combo.clear()
+        if available:
+            self.profile_combo.addItems([str(profile) for profile in available])
+            if active in available:
+                self.profile_combo.setCurrentIndex(available.index(active))
+        else:
+            self.profile_combo.addItem('No saved profiles')
+
+        controls_enabled = bool(self.dbus_wrapper) and has_device_settings
+        self.save_profile_button.setEnabled(controls_enabled)
+        self.profile_name_input.setEnabled(controls_enabled)
+        self.profile_combo.setEnabled(controls_enabled and bool(available))
+        self.load_profile_button.setEnabled(controls_enabled and bool(available))
+
+        if not self.dbus_wrapper:
+            self.profile_status_label.setText('Demo mode: profile actions need the D-Bus service.')
+        elif has_device_settings:
+            self.profile_status_label.setText('Profiles save and load the current device settings.')
+        else:
+            self.profile_status_label.setText('Connect a supported headset to save profiles.')
+
+    def _on_save_profile_clicked(self) -> None:
+        if not self.dbus_wrapper:
+            self.profile_status_label.setText('D-Bus service is required to save profiles.')
+            return
+
+        profile_name = self.profile_name_input.text().strip()
+        if not profile_name:
+            self.profile_status_label.setText('Enter a profile name before saving.')
+            return
+
+        self.profile_status_label.setText(f'Save requested for "{profile_name}".')
+        self.dbus_wrapper.save_profile(profile_name)
+
+    def _on_load_profile_clicked(self) -> None:
+        if not self.dbus_wrapper:
+            self.profile_status_label.setText('D-Bus service is required to load profiles.')
+            return
+
+        profile_name = self.profile_combo.currentText().strip()
+        if not profile_name or profile_name == 'No saved profiles':
+            self.profile_status_label.setText('Choose a saved profile first.')
+            return
+
+        self.profile_name_input.setText(profile_name)
+        self.profile_status_label.setText(f'Load requested for "{profile_name}".')
+        self.dbus_wrapper.load_profile(profile_name)
 
     def _stylesheet(self) -> str:
         return '''
@@ -475,6 +566,37 @@ class QMainApp(QBaseDesktopApp):
                 color: #7f92a5;
                 padding: 8px 10px;
                 text-align: left;
+            }
+            #primaryAction, #secondaryAction, #profileNameInput, #profileCombo {
+                border-radius: 8px;
+                font-size: 13px;
+                min-height: 34px;
+                padding: 6px 10px;
+            }
+            #primaryAction {
+                background: #5fb3f3;
+                border: 1px solid #7bc4ff;
+                color: #08111a;
+                font-weight: 700;
+            }
+            #secondaryAction {
+                background: #1c2733;
+                border: 1px solid #34465a;
+                color: #dbe7f3;
+                font-weight: 700;
+            }
+            #primaryAction:disabled, #secondaryAction:disabled {
+                background: #1c2733;
+                border: 1px solid #2e3c4d;
+                color: #7f92a5;
+            }
+            #profileNameInput, #profileCombo {
+                background: #0f1419;
+                border: 1px solid #34465a;
+                color: #edf2f7;
+            }
+            #profileNameInput:disabled, #profileCombo:disabled {
+                color: #7f92a5;
             }
             #card {
                 background: #151d27;

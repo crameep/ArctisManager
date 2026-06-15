@@ -39,9 +39,11 @@ Device capabilities are data-driven. YAML files define vendor/product IDs, USB c
 
 Per-device settings are stored in `~/.config/arctis_manager/settings/<vendor>_<product>.yaml`. General settings are stored in `~/.config/arctis_manager/settings/general_settings.yaml`.
 
+Named per-device profiles are stored separately in `~/.config/arctis_manager/profiles/<vendor>_<product>.yaml`. A profile is a snapshot of the current device setting values. The D-Bus settings service exposes profile metadata and save/load methods so GUI clients can manage profiles without knowing the file format.
+
 ## GUI And CLI
 
-The GUI reads D-Bus settings and status dynamically instead of hardcoding device-specific controls. The CLI currently focuses on setup tasks, udev generation, desktop entries, and USB/HID discovery.
+The GUI reads D-Bus settings and status dynamically instead of hardcoding device-specific controls. The Profiles page uses the settings service to save and load named snapshots for the connected device. The CLI currently focuses on setup tasks, udev generation, desktop entries, and USB/HID discovery.
 
 ## Testing Strategy
 

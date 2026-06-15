@@ -34,3 +34,46 @@ def test_demo_main_window_opens_with_dashboard_and_mixer_content():
     assert window_app.mixer_sliders['Arctis_Microphone'].value() == 0
 
     window_app.sig_stop()
+
+
+def test_profiles_page_updates_from_settings_metadata():
+    app = QApplication.instance() or QApplication([])
+    window_app = QMainApp(app, logging.CRITICAL, demo_mode=True)
+
+    class FakeDbusWrapper:
+        saved_profile = ''
+        loaded_profile = ''
+
+        def save_profile(self, name):
+            self.saved_profile = name
+
+        def load_profile(self, name):
+            self.loaded_profile = name
+
+        def stop(self):
+            pass
+
+    fake_dbus = FakeDbusWrapper()
+    window_app.dbus_wrapper = fake_dbus
+    window_app.on_settings_received({
+        'device': {'sidetone': 6},
+        'profiles': {
+            'available': ['Default', 'Late Night'],
+            'active': 'Late Night',
+        },
+    })
+    app.processEvents()
+
+    assert window_app.active_profile_label.text() == 'Late Night'
+    assert window_app.profile_name_input.text() == 'Late Night'
+    assert window_app.save_profile_button.isEnabled()
+    assert window_app.load_profile_button.isEnabled()
+    assert window_app.profile_combo.currentText() == 'Late Night'
+
+    window_app._on_save_profile_clicked()
+    window_app._on_load_profile_clicked()
+
+    assert fake_dbus.saved_profile == 'Late Night'
+    assert fake_dbus.loaded_profile == 'Late Night'
+
+    window_app.sig_stop()

@@ -29,6 +29,8 @@ STEELSERIES_VENDOR_ID = 0x1038
 
 SETTINGS_FOLDER = Path.home() / '.config' / 'arctis_manager' / 'settings'
 
+PROFILES_FOLDER = Path.home() / '.config' / 'arctis_manager' / 'profiles'
+
 HOME_LANG_FOLDER = Path.home() / '.config' / 'arctis_manager' / 'lang'
 
 HOME_CONFIG_FOLDER = Path.home() / '.config' / 'arctis_manager' / 'devices'

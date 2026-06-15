@@ -13,6 +13,7 @@ An open-source replacement for SteelSeries GG, to manage your Arctis headset on 
 
 - Control ChatMix - enable and control balance between `Game`/`Media`/`Aux` and `Chat` audio streams
 - Modern dashboard-first GUI with mixer, routing, device, profile, and settings pages
+- Save and reload named per-device profiles from the GUI
 - Configure any device via a simple configuration file
 - Enable per-device features by adding them in the relative configuration file
 - D-Bus based communication, to support different clients (alternative clients, Plasma extensions, etc)
