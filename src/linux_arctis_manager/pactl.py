@@ -3,9 +3,10 @@ import time
 
 import pulsectl
 
-from linux_arctis_manager.constants import (PULSE_CHAT_NODE_NAME,
-                                            PULSE_MEDIA_NODE_NAME,
-                                            STEELSERIES_VENDOR_ID)
+from linux_arctis_manager.audio_endpoints import (VIRTUAL_SINK_ENDPOINTS,
+                                                  VIRTUAL_SINK_NODE_NAMES,
+                                                  endpoints_for_mix_group)
+from linux_arctis_manager.constants import STEELSERIES_VENDOR_ID
 
 ONLY_PHYSICAL = 1
 ONLY_VIRTUAL = 2
@@ -58,7 +59,7 @@ class PulseAudioManager:
             return product_id_attr in [f'0x{pid:04x}' for pid in lst]
 
         physical = [s for s in sinks if s.proplist.get('device.vendor.id', '') == f'0x{vendor_id:04x}' and check_prod_id(s.proplist.get('device.product.id', ''))]
-        virtual = [s for s in sinks if s.proplist.get('node.name', '') in (PULSE_MEDIA_NODE_NAME, PULSE_CHAT_NODE_NAME)]
+        virtual = [s for s in sinks if s.proplist.get('node.name', '') in VIRTUAL_SINK_NODE_NAMES]
 
         if mode == ONLY_PHYSICAL:
             sinks = physical
@@ -143,13 +144,14 @@ class PulseAudioManager:
 
         sinks = self.get_arctis_sinks(ONLY_VIRTUAL)
 
-        media = next((s for s in sinks if s.proplist.get('node.name', '') == PULSE_MEDIA_NODE_NAME), None)
-        chat = next((s for s in sinks if s.proplist.get('node.name', '') == PULSE_CHAT_NODE_NAME), None)
+        sinks_by_node_name = {s.proplist.get('node.name', ''): s for s in sinks}
 
-        if media:
-            self.pulse.volume_set_all_chans(media, media_mix / 100)
-        if chat:
-            self.pulse.volume_set_all_chans(chat, chat_mix / 100)
+        for endpoint in endpoints_for_mix_group('media'):
+            if sink := sinks_by_node_name.get(endpoint.node_name):
+                self.pulse.volume_set_all_chans(sink, media_mix / 100)
+        for endpoint in endpoints_for_mix_group('chat'):
+            if sink := sinks_by_node_name.get(endpoint.node_name):
+                self.pulse.volume_set_all_chans(sink, chat_mix / 100)
 
     def sinks_setup(self, device_name: str, vendor_id: int, product_id: int|list[int]|None):
         real_sink = self.get_arctis_sinks(ONLY_PHYSICAL, vendor_id=vendor_id, product_id=product_id)
@@ -158,11 +160,11 @@ class PulseAudioManager:
             self.logger.warning('No SteelSeries Arctis sink found.')
             return
         
-        self.create_virtual_sink(PULSE_MEDIA_NODE_NAME, f'{device_name} Media', real_sink[0].name)
-        self.create_virtual_sink(PULSE_CHAT_NODE_NAME, f'{device_name} Chat', real_sink[0].name)
+        for endpoint in VIRTUAL_SINK_ENDPOINTS:
+            self.create_virtual_sink(endpoint.node_name, f'{device_name} {endpoint.label}', real_sink[0].name)
 
     def sinks_teardown(self):
         self.logger.info('Removing virtual sinks...')
 
-        self.remove_virtual_sink(PULSE_MEDIA_NODE_NAME)
-        self.remove_virtual_sink(PULSE_CHAT_NODE_NAME)
+        for endpoint in VIRTUAL_SINK_ENDPOINTS:
+            self.remove_virtual_sink(endpoint.node_name)

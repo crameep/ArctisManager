@@ -9,8 +9,8 @@ from usb.core import Device
 from linux_arctis_manager.config import (DeviceConfiguration,
                                          load_device_configurations,
                                          parsed_status)
-from linux_arctis_manager.constants import (PULSE_CHAT_NODE_NAME,
-                                            PULSE_MEDIA_NODE_NAME)
+from linux_arctis_manager.audio_endpoints import VIRTUAL_SINK_NODE_NAMES
+from linux_arctis_manager.constants import PULSE_MEDIA_NODE_NAME
 from linux_arctis_manager.pactl import PulseAudioManager
 from linux_arctis_manager.settings import DeviceSettings, GeneralSettings
 from linux_arctis_manager.usb_devices_monitor import USBDevicesMonitor
@@ -305,7 +305,7 @@ class CoreEngine:
         redirect_device = self.general_settings.redirect_audio_on_disconnect_device if self.general_settings.redirect_audio_on_disconnect else None
         current_default_device = self.pa_audio_manager.get_default_device()
 
-        if current_default_device and redirect_device and current_default_device.name in [PULSE_MEDIA_NODE_NAME, PULSE_CHAT_NODE_NAME]:
+        if current_default_device and redirect_device and current_default_device.name in VIRTUAL_SINK_NODE_NAMES:
             self.pa_audio_manager.redirect_audio(redirect_device)
     
     def translate_init_bytes(self, data: list[int|str]) -> list[int]:
