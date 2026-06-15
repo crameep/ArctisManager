@@ -1,9 +1,15 @@
-from typing import cast
+from typing import Protocol, cast
 
 import usb
 
-from linux_arctis_manager.core import TypedDevice
 from linux_arctis_manager.typing.protocols import UsbConfig
+
+
+class TypedDevice(Protocol):
+    idVendor: int
+    idProduct: int
+    manufacturer: str
+    product: str
 
 
 def endpoint_type(bmAttributes: int) -> str:

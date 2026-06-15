@@ -8,9 +8,6 @@ import time
 from pathlib import Path
 from types import FrameType
 
-from linux_arctis_manager.core import CoreEngine
-from linux_arctis_manager.dbus_service import DbusManager
-from linux_arctis_manager.scripts.dbus_awake import DbusAwake
 from linux_arctis_manager.utils import project_version
 
 
@@ -80,6 +77,10 @@ def check_single_instance(replace: bool) -> None:
 
 
 async def main_async():
+    from linux_arctis_manager.core import CoreEngine
+    from linux_arctis_manager.dbus_service import DbusManager
+    from linux_arctis_manager.scripts.dbus_awake import DbusAwake
+
     logging.basicConfig(level=logging.INFO, format='[%(levelname)7s] %(name)20s: %(message)s')
 
     logger = logging.getLogger('Daemon')
@@ -105,6 +106,8 @@ def sigterm_handler(
         sig: int,
         frame: FrameType | None = None
     ) -> None:
+    from linux_arctis_manager.dbus_service import DbusManager
+
     DbusManager.getInstance().stop()
 
 

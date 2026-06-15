@@ -9,9 +9,7 @@ from PySide6.QtWidgets import (QApplication, QFrame, QGridLayout, QHBoxLayout,
 
 from linux_arctis_manager.audio_endpoints import VIRTUAL_AUDIO_ENDPOINTS
 from linux_arctis_manager.gui.base_app import QBaseDesktopApp
-from linux_arctis_manager.gui.dbus_wrapper import DbusWrapper
 from linux_arctis_manager.gui.main_app_proto_widget import QMainAppProtoWidget
-from linux_arctis_manager.gui.settings_widget import QSettingsWidget
 from linux_arctis_manager.gui.status_widget import QStatusWidget
 from linux_arctis_manager.gui.ui_utils import get_icon_pixmap
 from linux_arctis_manager.gui.view_models import dashboard_summary, demo_status, mixer_levels
@@ -39,8 +37,10 @@ class QMainApp(QBaseDesktopApp):
         self.settings = {}
         self.status = {}
 
-        self.dbus_wrapper: DbusWrapper | None = None
+        self.dbus_wrapper = None
         if not self.demo_mode:
+            from linux_arctis_manager.gui.dbus_wrapper import DbusWrapper
+
             self.dbus_wrapper = DbusWrapper()
             self.dbus_wrapper.sig_settings.connect(self.on_settings_received)
             self.dbus_wrapper.sig_status.connect(self.on_status_received)
@@ -50,15 +50,18 @@ class QMainApp(QBaseDesktopApp):
         self.status_widget = QStatusWidget(self.dashboard_status_card)
         self.dashboard_status_card.layout().addWidget(self.status_widget)
 
-        self.general_settings_widget = QSettingsWidget(self.settings_page, 'general', 'general')
-        self.device_settings_widget = QSettingsWidget(self.device_settings_card, 'device', 'device')
-        self.settings_page_content_layout.addWidget(self.general_settings_widget)
-        self.device_settings_card.layout().addWidget(self.device_settings_widget)
-
         if self.dbus_wrapper:
+            from linux_arctis_manager.gui.settings_widget import QSettingsWidget
+
+            self.general_settings_widget = QSettingsWidget(self.settings_page, 'general', 'general')
+            self.device_settings_widget = QSettingsWidget(self.device_settings_card, 'device', 'device')
+            self.settings_page_content_layout.addWidget(self.general_settings_widget)
+            self.device_settings_card.layout().addWidget(self.device_settings_widget)
             self.dbus_wrapper.sig_status.connect(self.status_widget.update_status)
             self.dbus_wrapper.sig_settings.connect(self.general_settings_widget.update_settings)
             self.dbus_wrapper.sig_settings.connect(self.device_settings_widget.update_settings)
+        else:
+            self.device_settings_card.layout().addWidget(self._muted_label('Demo mode uses sample status only. D-Bus device controls are hidden.'))
 
         self.switch_panel('dashboard')
         if self.dbus_wrapper:

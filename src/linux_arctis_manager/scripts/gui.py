@@ -8,9 +8,7 @@ from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication
 
 from linux_arctis_manager.gui.main_app import QMainApp
-from linux_arctis_manager.gui.systray_app import QSystrayApp
 from linux_arctis_manager.i18n import I18n
-from linux_arctis_manager.systemd import ensure_systemd_unit
 
 
 def main():
@@ -38,6 +36,8 @@ def main():
 
     q_object = None
     if args.systray:
+        from linux_arctis_manager.gui.systray_app import QSystrayApp
+
         q_object = QSystrayApp(app, log_level)
         app.setQuitOnLastWindowClosed(False)
     else:
@@ -45,6 +45,8 @@ def main():
         app.setQuitOnLastWindowClosed(True)
     
     if not args.no_enforce_systemd and not args.demo:
+        from linux_arctis_manager.systemd import ensure_systemd_unit
+
         ensure_systemd_unit(True)
 
     timer = QTimer()

@@ -6,7 +6,6 @@ from PySide6.QtWidgets import (QComboBox, QHBoxLayout, QLabel, QSlider,
                                QVBoxLayout, QWidget)
 
 from linux_arctis_manager.config import ConfigSetting, SettingType
-from linux_arctis_manager.gui.dbus_wrapper import DbusWrapper
 from linux_arctis_manager.gui.qt_widgets.q_checkable_button_group import \
     QCheckableButtonGroup
 from linux_arctis_manager.gui.qt_widgets.q_dual_state import QDualState
@@ -85,6 +84,8 @@ class QSettingsWidget(QWidget):
             self.settings_config[config_name] = ConfigSetting(name=config_name, **kwargs)
             if self.settings_config[config_name].type == SettingType.SELECT \
                 and self.settings_config[config_name].options_source not in self._option_lists:
+                from linux_arctis_manager.gui.dbus_wrapper import DbusWrapper
+
                 DbusWrapper.request_list_options(self.settings_config[config_name].options_source, self.sig_list_received)
 
         settings: dict[str, int|bool|str]|None = new_settings.get(self.dbus_settings_section, None)
@@ -108,6 +109,8 @@ class QSettingsWidget(QWidget):
         dbus_value = value
         if config.type == SettingType.TOGGLE:
             dbus_value = config.values.get('on', True) if value else config.values.get('off', False)
+
+        from linux_arctis_manager.gui.dbus_wrapper import DbusWrapper
 
         DbusWrapper.change_setting(config.name, dbus_value)
 
