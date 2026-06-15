@@ -14,6 +14,7 @@ from linux_arctis_manager.gui.main_app_proto_widget import QMainAppProtoWidget
 from linux_arctis_manager.gui.settings_widget import QSettingsWidget
 from linux_arctis_manager.gui.status_widget import QStatusWidget
 from linux_arctis_manager.gui.ui_utils import get_icon_pixmap
+from linux_arctis_manager.gui.view_models import dashboard_summary, demo_status, mixer_levels
 from linux_arctis_manager.i18n import I18n
 
 PanelName = Literal['dashboard', 'mixer', 'device', 'routing', 'profiles', 'settings']
@@ -27,19 +28,22 @@ class QMainApp(QBaseDesktopApp):
     main_panel: QWidget
     status_widget: QStatusWidget
 
-    def __init__(self, app: QApplication, log_level: int):
+    def __init__(self, app: QApplication, log_level: int, demo_mode: bool = False):
         super().__init__(parent=app)
 
         self.logger = logging.getLogger('QMainApp')
         self.logger.setLevel(log_level)
 
         self.app = app
+        self.demo_mode = demo_mode
         self.settings = {}
         self.status = {}
 
-        self.dbus_wrapper = DbusWrapper()
-        self.dbus_wrapper.sig_settings.connect(self.on_settings_received)
-        self.dbus_wrapper.sig_status.connect(self.on_status_received)
+        self.dbus_wrapper: DbusWrapper | None = None
+        if not self.demo_mode:
+            self.dbus_wrapper = DbusWrapper()
+            self.dbus_wrapper.sig_settings.connect(self.on_settings_received)
+            self.dbus_wrapper.sig_status.connect(self.on_status_received)
 
         self.main_window = self.main_window_setup()
 
@@ -51,12 +55,19 @@ class QMainApp(QBaseDesktopApp):
         self.settings_page_content_layout.addWidget(self.general_settings_widget)
         self.device_settings_card.layout().addWidget(self.device_settings_widget)
 
-        self.dbus_wrapper.sig_status.connect(self.status_widget.update_status)
-        self.dbus_wrapper.sig_settings.connect(self.general_settings_widget.update_settings)
-        self.dbus_wrapper.sig_settings.connect(self.device_settings_widget.update_settings)
+        if self.dbus_wrapper:
+            self.dbus_wrapper.sig_status.connect(self.status_widget.update_status)
+            self.dbus_wrapper.sig_settings.connect(self.general_settings_widget.update_settings)
+            self.dbus_wrapper.sig_settings.connect(self.device_settings_widget.update_settings)
 
         self.switch_panel('dashboard')
-        self.dbus_wrapper.start()
+        if self.dbus_wrapper:
+            self.dbus_wrapper.start()
+        else:
+            status = demo_status()
+            self.status_widget.update_status(status)
+            self.on_status_received(status)
+            self.service_status_label.setText('Demo mode - D-Bus disabled')
 
         self.destroyed.connect(self.sig_stop)
 
@@ -181,6 +192,7 @@ class QMainApp(QBaseDesktopApp):
             ('device', 'Device', 'No device detected'),
             ('battery', 'Battery', 'Unknown'),
             ('microphone', 'Microphone', 'Unknown'),
+            ('outputs', 'Outputs', 'Game / Chat / Media / Aux'),
             ('profile', 'Profile', 'Default'),
         ]):
             card = self._summary_card(title, value)
@@ -258,6 +270,7 @@ class QMainApp(QBaseDesktopApp):
         planned.layout().addWidget(self._muted_label(
             'Prepared for native PipeWire/WirePlumber integration. Applications are not moved yet.'
         ))
+        planned.layout().addWidget(self._disabled_action('Assign app to endpoint - planned'))
         layout.addWidget(planned)
 
         return page
@@ -270,6 +283,13 @@ class QMainApp(QBaseDesktopApp):
         current.layout().addWidget(self._muted_label(
             'Per-device YAML settings are persisted today. Named profile save/load is planned.'
         ))
+        profile_actions = QWidget()
+        profile_action_layout = QHBoxLayout()
+        profile_action_layout.setContentsMargins(0, 0, 0, 0)
+        profile_actions.setLayout(profile_action_layout)
+        profile_action_layout.addWidget(self._disabled_action('Save profile - planned'))
+        profile_action_layout.addWidget(self._disabled_action('Load profile - planned'))
+        current.layout().addWidget(profile_actions)
         layout.addWidget(current)
 
         future = self._card('Profile Automation')
@@ -347,6 +367,12 @@ class QMainApp(QBaseDesktopApp):
         label.setWordWrap(True)
         return label
 
+    def _disabled_action(self, text: str) -> QPushButton:
+        button = QPushButton(text)
+        button.setObjectName('disabledAction')
+        button.setEnabled(False)
+        return button
+
     def switch_panel(self, panel: PanelName) -> None:
         self.stack.setCurrentWidget(self.pages[panel])
         title, subtitle = self.page_titles[panel]
@@ -381,57 +407,17 @@ class QMainApp(QBaseDesktopApp):
         self._refresh_dashboard_status(status)
         self._refresh_mixer_status(status)
 
-    def _flat_status_values(self, status: dict) -> dict[str, str | int]:
-        values: dict[str, str | int] = {}
-        for status_obj in status.values():
-            if not isinstance(status_obj, dict):
-                continue
-            for name, payload in status_obj.items():
-                if isinstance(payload, dict) and 'value' in payload:
-                    values[name] = payload['value']
-
-        return values
-
     def _refresh_dashboard_status(self, status: dict) -> None:
-        values = self._flat_status_values(status)
-
-        self.dashboard_cards['device'].setText('Connected' if status else 'No device detected')
-        self.dashboard_cards['battery'].setText(self._first_status_value(values, ['headset_battery_charge', 'charge_slot_battery_charge'], 'Unknown'))
-        self.dashboard_cards['microphone'].setText(self._first_status_value(values, ['mic_status', 'mic_volume'], 'Unknown'))
-        self.dashboard_cards['profile'].setText('Default')
+        for key, value in dashboard_summary(status).items():
+            if key in self.dashboard_cards:
+                self.dashboard_cards[key].setText(value)
 
     def _refresh_mixer_status(self, status: dict) -> None:
-        values = self._flat_status_values(status)
-        media_mix = self._safe_int(values.get('media_mix'), 100)
-        chat_mix = self._safe_int(values.get('chat_mix'), 100)
-
-        for endpoint in VIRTUAL_AUDIO_ENDPOINTS:
-            slider = self.mixer_sliders.get(endpoint.node_name)
+        for node_name, level in mixer_levels(status).items():
+            slider = self.mixer_sliders.get(node_name)
             if not slider:
                 continue
-            if not endpoint.implemented:
-                slider.setValue(0)
-            elif endpoint.mix_group == 'chat':
-                slider.setValue(chat_mix)
-            elif endpoint.mix_group == 'media':
-                slider.setValue(media_mix)
-
-    def _first_status_value(self, values: dict[str, str | int], keys: list[str], fallback: str) -> str:
-        for key in keys:
-            if key not in values:
-                continue
-            value = values[key]
-            return f'{value}%' if key.endswith('battery_charge') and isinstance(value, int) else str(value)
-
-        return fallback
-
-    def _safe_int(self, value: str | int | None, fallback: int) -> int:
-        if isinstance(value, int):
-            return max(0, min(100, value))
-        try:
-            return max(0, min(100, int(value))) if value is not None else fallback
-        except ValueError:
-            return fallback
+            slider.setValue(level)
 
     def _stylesheet(self) -> str:
         return '''
@@ -477,6 +463,14 @@ class QMainApp(QBaseDesktopApp):
             #navButton:checked {
                 background: #22425f;
                 color: #ffffff;
+            }
+            #disabledAction {
+                background: #1c2733;
+                border: 1px solid #2e3c4d;
+                border-radius: 8px;
+                color: #7f92a5;
+                padding: 8px 10px;
+                text-align: left;
             }
             #card {
                 background: #151d27;
@@ -527,7 +521,8 @@ class QMainApp(QBaseDesktopApp):
             return
         self._stopping = True
 
-        self.dbus_wrapper.stop()
+        if self.dbus_wrapper:
+            self.dbus_wrapper.stop()
 
         self.logger.debug('Received shutdown signal, shutting down.')
         self.app.quit()

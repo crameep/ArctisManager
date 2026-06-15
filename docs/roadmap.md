@@ -6,7 +6,7 @@ The project already has a Python daemon, D-Bus service, PySide GUI, CLI setup to
 
 The first routing expansion adds a Sonar-style endpoint catalog for Game, Chat, Media, Aux, and a planned Microphone source. Game, Chat, Media, and Aux are implemented as virtual output sinks. Microphone is intentionally marked as planned until a safe source implementation exists.
 
-The first UI expansion adds a dashboard-first PySide shell with mixer, routing, device, profiles, and settings pages. It is inspired by modern audio control workflows, but uses original layout, naming, and iconography and remains clearly unaffiliated with SteelSeries.
+The first UI expansion adds a dashboard-first PySide shell with mixer, routing, device, profiles, and settings pages. It is inspired by modern audio control workflows, but uses original layout, naming, and iconography and remains clearly unaffiliated with SteelSeries. Developers can preview the shell without a running daemon by launching `lam-gui --demo`.
 
 ## MVP
 

@@ -9,6 +9,7 @@ from PySide6.QtWidgets import QApplication
 
 from linux_arctis_manager.gui.main_app import QMainApp
 from linux_arctis_manager.gui.systray_app import QSystrayApp
+from linux_arctis_manager.i18n import I18n
 from linux_arctis_manager.systemd import ensure_systemd_unit
 
 
@@ -17,7 +18,10 @@ def main():
     parser.add_argument('--systray', action='store_true', help='Run systray app, instead of opening the main window')
     parser.add_argument('--verbose', '-v', action='count', default=0, help='Increase verbosity (up to -vvvv)')
     parser.add_argument('--no-enforce-systemd', action='store_true', help='Do not enforce systemd unit')
+    parser.add_argument('--demo', action='store_true', help='Open the main window with sample data and no D-Bus connection')
     args = parser.parse_args()
+    if args.demo and args.systray:
+        parser.error('--demo is only available for the main window')
 
     log_level = logging.CRITICAL
     for _ in range(args.verbose):
@@ -28,18 +32,19 @@ def main():
     logging.basicConfig(level=log_level, format='%(name)20s %(levelname)8s | %(message)s')
 
     app = QApplication(sys.argv)
-    app.setApplicationName('Arctis Manager')
-    app.setApplicationDisplayName('Arctis Manager')
+    app_name = I18n.get_instance().translate('ui', 'app_name')
+    app.setApplicationName(app_name)
+    app.setApplicationDisplayName(app_name)
 
     q_object = None
     if args.systray:
         q_object = QSystrayApp(app, log_level)
         app.setQuitOnLastWindowClosed(False)
     else:
-        q_object = QMainApp(app, log_level)
+        q_object = QMainApp(app, log_level, demo_mode=args.demo)
         app.setQuitOnLastWindowClosed(True)
     
-    if not args.no_enforce_systemd:
+    if not args.no_enforce_systemd and not args.demo:
         ensure_systemd_unit(True)
 
     timer = QTimer()
