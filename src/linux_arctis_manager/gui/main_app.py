@@ -427,6 +427,7 @@ class QMainApp(QBaseDesktopApp):
             #mainWindow {
                 background: #0f1419;
                 color: #edf2f7;
+                font-family: "Noto Sans", "Segoe UI", "Inter", "Arial";
             }
             #sidePanel {
                 background: #111922;
