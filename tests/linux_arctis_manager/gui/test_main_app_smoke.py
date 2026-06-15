@@ -187,3 +187,45 @@ def test_routing_page_updates_from_audio_endpoint_metadata():
     assert fake_dbus.moved_route == (55, 'Arctis_Game')
 
     window_app.sig_stop()
+
+
+def test_dashboard_uses_settings_for_profile_and_output_readiness():
+    app = QApplication.instance() or QApplication([])
+    window_app = QMainApp(app, logging.CRITICAL, demo_mode=True)
+
+    window_app.on_settings_received({
+        'profiles': {
+            'available': ['Default', 'Movie Night'],
+            'active': 'Movie Night',
+        },
+        'audio_endpoints': [
+            {
+                'node_name': 'Arctis_Game',
+                'label': 'Game',
+                'kind': 'sink',
+                'implemented': True,
+                'present': True,
+            },
+            {
+                'node_name': 'Arctis_Chat',
+                'label': 'Chat',
+                'kind': 'sink',
+                'implemented': True,
+                'present': False,
+            },
+        ],
+    })
+    window_app.on_status_received({
+        'headset': {
+            'headset_power_status': {'value': 'online', 'type': 'label'},
+            'headset_battery_charge': {'value': 91, 'type': 'percentage'},
+        },
+    })
+    app.processEvents()
+
+    assert window_app.dashboard_cards['device'].text() == 'online'
+    assert window_app.dashboard_cards['battery'].text() == '91%'
+    assert window_app.dashboard_cards['outputs'].text() == '1 ready: Game'
+    assert window_app.dashboard_cards['profile'].text() == 'Movie Night'
+
+    window_app.sig_stop()

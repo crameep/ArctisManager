@@ -40,6 +40,43 @@ def output_endpoint_summary() -> str:
     return ' / '.join(endpoint.label for endpoint in VIRTUAL_AUDIO_ENDPOINTS if endpoint.kind == 'sink' and endpoint.implemented)
 
 
+def ready_output_endpoint_summary(settings: dict) -> str:
+    endpoint_states = settings.get('audio_endpoints', [])
+    if not isinstance(endpoint_states, list) or not endpoint_states:
+        return output_endpoint_summary()
+
+    ready_labels = [
+        str(endpoint.get('label') or endpoint.get('node_name'))
+        for endpoint in endpoint_states
+        if isinstance(endpoint, dict)
+        and endpoint.get('kind') == 'sink'
+        and endpoint.get('implemented') is True
+        and endpoint.get('present') is True
+    ]
+
+    if ready_labels:
+        return f"{len(ready_labels)} ready: {' / '.join(ready_labels)}"
+
+    return 'No virtual outputs ready'
+
+
+def active_profile_name(settings: dict) -> str:
+    profiles = settings.get('profiles', {})
+    if not isinstance(profiles, dict):
+        return 'Default'
+
+    active = profiles.get('active', 'Default')
+
+    return active if isinstance(active, str) and active else 'Default'
+
+
+def dashboard_settings_summary(settings: dict) -> dict[str, str]:
+    return {
+        'outputs': ready_output_endpoint_summary(settings),
+        'profile': active_profile_name(settings),
+    }
+
+
 def dashboard_summary(status: StatusPayload | dict) -> dict[str, str]:
     values = flatten_status_values(status)
     online_state = first_status_value(values, ['headset_power_status', 'bluetooth_power_status'], 'Connected' if status else 'No device detected')
@@ -49,8 +86,6 @@ def dashboard_summary(status: StatusPayload | dict) -> dict[str, str]:
         'device': online_state,
         'battery': first_status_value(values, ['headset_battery_charge', 'charge_slot_battery_charge'], 'Unknown'),
         'microphone': mic_state,
-        'outputs': output_endpoint_summary(),
-        'profile': 'Default',
     }
 
 

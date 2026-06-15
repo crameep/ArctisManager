@@ -13,7 +13,12 @@ from linux_arctis_manager.gui.base_app import QBaseDesktopApp
 from linux_arctis_manager.gui.main_app_proto_widget import QMainAppProtoWidget
 from linux_arctis_manager.gui.status_widget import QStatusWidget
 from linux_arctis_manager.gui.ui_utils import get_icon_pixmap
-from linux_arctis_manager.gui.view_models import dashboard_summary, demo_status, mixer_levels
+from linux_arctis_manager.gui.view_models import (
+    dashboard_settings_summary,
+    dashboard_summary,
+    demo_status,
+    mixer_levels,
+)
 from linux_arctis_manager.i18n import I18n
 
 PanelName = Literal['dashboard', 'mixer', 'device', 'routing', 'profiles', 'settings']
@@ -53,6 +58,7 @@ class QMainApp(QBaseDesktopApp):
         self._refresh_profile_state({})
         self._refresh_routing_state({})
         self._refresh_application_routes({})
+        self._refresh_dashboard_settings({})
 
         if self.dbus_wrapper:
             from linux_arctis_manager.gui.settings_widget import QSettingsWidget
@@ -462,6 +468,7 @@ class QMainApp(QBaseDesktopApp):
 
         self.settings = settings
         self.service_status_label.setText('D-Bus settings connected')
+        self._refresh_dashboard_settings(settings)
         self._refresh_profile_state(settings)
         self._refresh_routing_state(settings)
         self._refresh_application_routes(settings)
@@ -477,6 +484,11 @@ class QMainApp(QBaseDesktopApp):
 
     def _refresh_dashboard_status(self, status: dict) -> None:
         for key, value in dashboard_summary(status).items():
+            if key in self.dashboard_cards:
+                self.dashboard_cards[key].setText(value)
+
+    def _refresh_dashboard_settings(self, settings: dict) -> None:
+        for key, value in dashboard_settings_summary(settings).items():
             if key in self.dashboard_cards:
                 self.dashboard_cards[key].setText(value)
 

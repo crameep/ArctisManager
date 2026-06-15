@@ -1,9 +1,12 @@
 from linux_arctis_manager.gui.view_models import (
+    active_profile_name,
+    dashboard_settings_summary,
     dashboard_summary,
     demo_status,
     flatten_status_values,
     mixer_levels,
     output_endpoint_summary,
+    ready_output_endpoint_summary,
     safe_percentage,
 )
 
@@ -39,8 +42,6 @@ def test_dashboard_summary_reports_status_and_outputs():
         'device': 'online',
         'battery': '87%',
         'microphone': 'muted',
-        'outputs': 'Game / Chat / Media / Aux',
-        'profile': 'Default',
     }
 
 
@@ -49,9 +50,71 @@ def test_dashboard_summary_handles_empty_status():
         'device': 'No device detected',
         'battery': 'Unknown',
         'microphone': 'Unknown',
+    }
+
+
+def test_dashboard_settings_summary_reports_ready_outputs_and_active_profile():
+    settings = {
+        'profiles': {'active': 'Late Night'},
+        'audio_endpoints': [
+            {
+                'node_name': 'Arctis_Game',
+                'label': 'Game',
+                'kind': 'sink',
+                'implemented': True,
+                'present': True,
+            },
+            {
+                'node_name': 'Arctis_Chat',
+                'label': 'Chat',
+                'kind': 'sink',
+                'implemented': True,
+                'present': True,
+            },
+            {
+                'node_name': 'Arctis_Media',
+                'label': 'Media',
+                'kind': 'sink',
+                'implemented': True,
+                'present': False,
+            },
+            {
+                'node_name': 'Arctis_Microphone',
+                'label': 'Microphone',
+                'kind': 'source',
+                'implemented': False,
+                'present': False,
+            },
+        ],
+    }
+
+    assert dashboard_settings_summary(settings) == {
+        'outputs': '2 ready: Game / Chat',
+        'profile': 'Late Night',
+    }
+
+
+def test_dashboard_settings_summary_falls_back_to_catalog_and_default_profile():
+    assert ready_output_endpoint_summary({}) == 'Game / Chat / Media / Aux'
+    assert active_profile_name({}) == 'Default'
+    assert dashboard_settings_summary({}) == {
         'outputs': 'Game / Chat / Media / Aux',
         'profile': 'Default',
     }
+
+
+def test_ready_output_endpoint_summary_reports_when_no_outputs_are_ready():
+    assert ready_output_endpoint_summary({
+        'audio_endpoints': [
+            {
+                'node_name': 'Arctis_Game',
+                'label': 'Game',
+                'kind': 'sink',
+                'implemented': True,
+                'present': False,
+            },
+        ],
+    }) == 'No virtual outputs ready'
 
 
 def test_mixer_levels_map_media_and_chat_mix_to_endpoint_groups():
