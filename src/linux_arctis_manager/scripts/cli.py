@@ -147,7 +147,7 @@ def write_desktop_entries() -> int:
 
     # 1. write the icon file
     ICONS_PATH.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(Path(__file__).parent.parent / 'gui' / 'images' / 'steelseries_logo.svg', ICON_PATH)
+    shutil.copyfile(Path(__file__).parent.parent / 'gui' / 'images' / 'app_icon.svg', ICON_PATH)
 
     # 2. write the desktop entries
     DESKTOP_WINDOW_PATH.parent.mkdir(parents=True, exist_ok=True)

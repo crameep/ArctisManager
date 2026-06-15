@@ -45,7 +45,7 @@ class QSystrayApp(QBaseDesktopApp):
 
         pixmap = get_icon_pixmap()
         self.tray_icon = QSystemTrayIcon(QIcon(pixmap), parent=self.app)
-        self.tray_icon.setToolTip('Arctis Manager')
+        self.tray_icon.setToolTip(I18n.get_instance().translate('ui', 'app_name'))
 
         lang_code, _ = locale.getdefaultlocale()
         lang_code = lang_code.split('_')[0] if lang_code else 'en'
