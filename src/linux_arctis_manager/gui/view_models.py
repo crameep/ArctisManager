@@ -90,6 +90,55 @@ DEVICE_CAPABILITY_GROUPS = (
     },
 )
 
+DEVICE_CONTROL_SNAPSHOT_GROUPS = (
+    {
+        'key': 'microphone',
+        'title': 'Microphone Levels',
+        'settings': (
+            'mic_volume',
+            'mic_side_tone',
+            'sidetone',
+            'mic_sidetone_boom',
+            'mic_sidetone_ear',
+        ),
+        'fallback': 'Mic level and sidetone values appear when the device exposes them.',
+    },
+    {
+        'key': 'noise_control',
+        'title': 'Noise Control',
+        'settings': (
+            'noise_cancelling',
+            'noise_cancelling_level',
+            'transparent_noise_cancelling_level',
+        ),
+        'fallback': 'ANC and transparency values appear on supported models.',
+    },
+    {
+        'key': 'power_wireless',
+        'title': 'Power & Wireless',
+        'settings': (
+            'wireless_mode',
+            'auto_off_time_minutes',
+            'pm_shutdown',
+            'bluetooth_power_status',
+            'bluetooth_default',
+            'bluetooth_auto_mute',
+        ),
+        'fallback': 'Power, wireless, and Bluetooth values depend on device metadata.',
+    },
+    {
+        'key': 'audio_dac',
+        'title': 'DAC / Output',
+        'settings': (
+            'station_volume',
+            'gain',
+            'line_out',
+            'volume_limiter',
+        ),
+        'fallback': 'GameDAC and output values appear when mapped for this device.',
+    },
+)
+
 
 def flatten_status_values(status: StatusPayload | dict) -> dict[str, str | int]:
     values: dict[str, str | int] = {}
@@ -444,6 +493,40 @@ def _friendly_setting_names(setting_names: list[str]) -> str:
     return ' / '.join(DEVICE_SETTING_LABELS.get(name, name.replace('_', ' ').title()) for name in setting_names)
 
 
+def _friendly_setting_value(name: str, value: str | int | bool, settings_config: dict) -> str:
+    config = settings_config.get(name, {})
+    if not isinstance(config, dict):
+        config = {}
+
+    values_mapping = config.get('values_mapping', {})
+    if isinstance(values_mapping, dict):
+        mapped = values_mapping.get(str(value))
+        if mapped is not None:
+            return str(mapped).replace('_', ' ').title()
+
+    if isinstance(value, bool):
+        return 'On' if value else 'Off'
+    if name.endswith('_minutes') and isinstance(value, int):
+        return f'{value} min'
+    if ('volume' in name or name.endswith('_level')) and isinstance(value, int):
+        return f'{value}%'
+
+    return str(value)
+
+
+def _friendly_setting_pairs(setting_names: list[str], device_settings: dict, settings_config: dict) -> str:
+    pairs = []
+    for name in setting_names:
+        if name not in device_settings:
+            continue
+
+        label = DEVICE_SETTING_LABELS.get(name, name.replace('_', ' ').title())
+        value = _friendly_setting_value(name, device_settings[name], settings_config)
+        pairs.append(f'{label}: {value}')
+
+    return ' / '.join(pairs)
+
+
 def device_capability_summary(settings: dict) -> list[dict[str, str]]:
     device_settings = settings.get('device', {})
     settings_config = settings.get('settings_config', {})
@@ -478,6 +561,40 @@ def device_capability_summary(settings: dict) -> list[dict[str, str]]:
         })
 
     return summaries
+
+
+def device_control_snapshot(settings: dict) -> list[dict[str, str]]:
+    device_settings = settings.get('device', {})
+    settings_config = settings.get('settings_config', {})
+    if not isinstance(device_settings, dict):
+        device_settings = {}
+    if not isinstance(settings_config, dict):
+        settings_config = {}
+
+    has_device = bool(device_settings)
+    snapshots = []
+    for group in DEVICE_CONTROL_SNAPSHOT_GROUPS:
+        group_settings = list(group['settings'])
+        active_settings = [name for name in group_settings if name in device_settings]
+
+        if active_settings:
+            state = 'Ready'
+            detail = _friendly_setting_pairs(active_settings, device_settings, settings_config)
+        elif has_device:
+            state = 'Not exposed'
+            detail = str(group['fallback'])
+        else:
+            state = 'No device'
+            detail = 'Connect a supported headset to show current hardware values.'
+
+        snapshots.append({
+            'key': str(group['key']),
+            'title': str(group['title']),
+            'state': state,
+            'detail': detail,
+        })
+
+    return snapshots
 
 
 def mixer_levels(status: StatusPayload | dict) -> dict[str, int]:

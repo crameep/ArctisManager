@@ -304,6 +304,15 @@ def test_device_page_updates_capability_overview_from_settings_metadata():
     assert window_app.device_capability_detail_labels['power_wireless'].text() == 'Controls: Wireless Mode'
     assert window_app.device_capability_state_labels['audio_dac'].text() == 'Not exposed'
     assert window_app.device_capability_state_labels['audio_dac'].property('state') == 'neutral'
+    assert window_app.device_snapshot_state_labels['microphone'].text() == 'Ready'
+    assert window_app.device_snapshot_state_labels['microphone'].property('state') == 'ready'
+    assert window_app.device_snapshot_detail_labels['microphone'].text() == 'Mic Volume: 82% / Sidetone: 2'
+    assert window_app.device_snapshot_state_labels['noise_control'].text() == 'Ready'
+    assert window_app.device_snapshot_detail_labels['noise_control'].text() == 'ANC: 1'
+    assert window_app.device_snapshot_state_labels['power_wireless'].text() == 'Ready'
+    assert window_app.device_snapshot_detail_labels['power_wireless'].text() == 'Wireless Mode: 0'
+    assert window_app.device_snapshot_state_labels['audio_dac'].text() == 'Not exposed'
+    assert window_app.device_snapshot_state_labels['audio_dac'].property('state') == 'neutral'
 
     window_app.sig_stop()
 

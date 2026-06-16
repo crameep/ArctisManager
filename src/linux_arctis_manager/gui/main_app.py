@@ -22,6 +22,7 @@ from linux_arctis_manager.gui.view_models import (
     demo_settings,
     demo_status,
     device_capability_summary,
+    device_control_snapshot,
     mixer_levels,
     profile_workflow_summary,
     routing_overview_summary,
@@ -65,6 +66,7 @@ class QMainApp(QBaseDesktopApp):
         self._refresh_profile_state({})
         self._refresh_profile_overview({})
         self._refresh_device_capability_state({})
+        self._refresh_device_control_snapshot({})
         self._refresh_routing_overview({})
         self._refresh_routing_state({})
         self._refresh_mixer_settings({})
@@ -359,6 +361,20 @@ class QMainApp(QBaseDesktopApp):
             self.device_capability_detail_labels[capability['key']] = detail_label
 
             capability_grid.addWidget(card, index // 2, index % 2)
+
+        snapshot = self._card('Control Snapshot')
+        self.device_snapshot_state_labels: dict[str, QLabel] = {}
+        self.device_snapshot_detail_labels: dict[str, QLabel] = {}
+        for snapshot_item in device_control_snapshot({}):
+            row = self._setup_step_row(
+                snapshot_item['title'],
+                snapshot_item['state'],
+                snapshot_item['detail'],
+            )
+            snapshot.layout().addWidget(row)
+            self.device_snapshot_state_labels[snapshot_item['key']] = row.findChild(QLabel, 'setupState')
+            self.device_snapshot_detail_labels[snapshot_item['key']] = row.findChild(QLabel, 'mutedText')
+        layout.addWidget(snapshot)
 
         self.device_settings_card = self._card('Device Controls')
         self.device_settings_card.layout().addWidget(self._muted_label(
@@ -813,6 +829,7 @@ class QMainApp(QBaseDesktopApp):
         self._refresh_profile_state(settings)
         self._refresh_profile_overview(settings)
         self._refresh_device_capability_state(settings)
+        self._refresh_device_control_snapshot(settings)
         self._refresh_routing_overview(settings)
         self._refresh_mixer_settings(settings)
         self._refresh_routing_state(settings)
@@ -931,6 +948,15 @@ class QMainApp(QBaseDesktopApp):
                 self._set_state_label(state_label, capability['state'])
             if detail_label:
                 detail_label.setText(capability['detail'])
+
+    def _refresh_device_control_snapshot(self, settings: dict) -> None:
+        for snapshot in device_control_snapshot(settings):
+            state_label = self.device_snapshot_state_labels.get(snapshot['key'])
+            detail_label = self.device_snapshot_detail_labels.get(snapshot['key'])
+            if state_label:
+                self._set_state_label(state_label, snapshot['state'])
+            if detail_label:
+                detail_label.setText(snapshot['detail'])
 
     def _refresh_profile_state(self, settings: dict) -> None:
         profiles = settings.get('profiles', {})

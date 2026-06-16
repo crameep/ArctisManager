@@ -7,6 +7,7 @@ from linux_arctis_manager.gui.view_models import (
     dashboard_settings_summary,
     dashboard_summary,
     device_capability_summary,
+    device_control_snapshot,
     demo_settings,
     demo_status,
     flatten_status_values,
@@ -314,6 +315,46 @@ def test_device_capability_summary_handles_no_device():
     summary = device_capability_summary({})
 
     assert {capability['state'] for capability in summary} == {'No device'}
+
+
+def test_device_control_snapshot_reports_current_exposed_values():
+    summary = {
+        snapshot['key']: snapshot
+        for snapshot in device_control_snapshot({
+            'device': {
+                'mic_volume': 80,
+                'mic_side_tone': 2,
+                'noise_cancelling': 1,
+                'transparent_noise_cancelling_level': 4,
+                'wireless_mode': 0,
+                'auto_off_time_minutes': 30,
+                'station_volume': 60,
+                'gain': 1,
+            },
+            'settings_config': {
+                'noise_cancelling': {
+                    'values_mapping': {
+                        '1': 'on',
+                    },
+                },
+            },
+        })
+    }
+
+    assert summary['microphone']['state'] == 'Ready'
+    assert summary['microphone']['detail'] == 'Mic Volume: 80% / Sidetone: 2'
+    assert summary['noise_control']['state'] == 'Ready'
+    assert summary['noise_control']['detail'] == 'ANC: On / Transparency: 4%'
+    assert summary['power_wireless']['state'] == 'Ready'
+    assert summary['power_wireless']['detail'] == 'Wireless Mode: 0 / Auto Off: 30 min'
+    assert summary['audio_dac']['state'] == 'Ready'
+    assert summary['audio_dac']['detail'] == 'Station Volume: 60% / Gain: 1'
+
+
+def test_device_control_snapshot_handles_no_device():
+    summary = device_control_snapshot({})
+
+    assert {snapshot['state'] for snapshot in summary} == {'No device'}
 
 
 def test_profile_workflow_summary_reports_saved_profiles_and_readiness():
