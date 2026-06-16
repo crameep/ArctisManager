@@ -19,6 +19,9 @@ def test_demo_main_window_opens_with_dashboard_and_mixer_content():
     window_app.main_window.show()
     app.processEvents()
 
+    assert window_app.main_window.minimumWidth() <= 960
+    assert window_app.main_window.minimumHeight() <= 640
+    assert window_app.side_panel.width() == 220
     assert window_app.header_title.text() == 'Dashboard'
     assert window_app.dashboard_cards['device'].text() == 'Arctis Nova 7 Wireless (demo)'
     assert window_app.dashboard_cards['battery'].text() == '87%'

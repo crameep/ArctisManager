@@ -115,9 +115,9 @@ class QMainApp(QBaseDesktopApp):
         window_layout.setSpacing(0)
         window.setLayout(window_layout)
 
-        window.setMinimumSize(1040, 680)
+        window.setMinimumSize(960, 640)
         available_geometry = window.screen().availableGeometry()
-        window.resize(min(1180, available_geometry.width()), min(760, available_geometry.height()))
+        window.resize(min(1120, available_geometry.width()), min(720, available_geometry.height()))
 
         self.side_panel = self._build_side_panel()
         window_layout.addWidget(self.side_panel)
@@ -125,8 +125,8 @@ class QMainApp(QBaseDesktopApp):
         self.main_panel = QWidget()
         self.main_panel.setObjectName('contentPanel')
         self.main_panel_layout = QVBoxLayout()
-        self.main_panel_layout.setContentsMargins(28, 24, 28, 24)
-        self.main_panel_layout.setSpacing(18)
+        self.main_panel_layout.setContentsMargins(22, 20, 22, 20)
+        self.main_panel_layout.setSpacing(16)
         self.main_panel.setLayout(self.main_panel_layout)
         window_layout.addWidget(self.main_panel, 1)
 
@@ -166,10 +166,10 @@ class QMainApp(QBaseDesktopApp):
     def _build_side_panel(self) -> QWidget:
         panel = QWidget()
         panel.setObjectName('sidePanel')
-        panel.setFixedWidth(240)
+        panel.setFixedWidth(220)
         layout = QVBoxLayout()
-        layout.setContentsMargins(18, 22, 18, 22)
-        layout.setSpacing(8)
+        layout.setContentsMargins(16, 20, 16, 20)
+        layout.setSpacing(7)
         panel.setLayout(layout)
 
         brand = QLabel(I18n.get_instance().translate('ui', 'app_name'))
@@ -180,7 +180,7 @@ class QMainApp(QBaseDesktopApp):
         tagline.setObjectName('brandTagline')
         layout.addWidget(tagline)
 
-        layout.addSpacing(20)
+        layout.addSpacing(18)
 
         self.nav_buttons: dict[PanelName, QPushButton] = {}
         nav_items: list[tuple[PanelName, str]] = [
@@ -581,7 +581,7 @@ class QMainApp(QBaseDesktopApp):
         card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         layout = QVBoxLayout()
-        layout.setContentsMargins(18, 16, 18, 16)
+        layout.setContentsMargins(16, 14, 16, 14)
         layout.setSpacing(10)
         card.setLayout(layout)
 
@@ -1102,7 +1102,7 @@ class QMainApp(QBaseDesktopApp):
             }
             #brandTitle {
                 color: #f8fafc;
-                font-size: 21px;
+                font-size: 20px;
                 font-weight: 700;
             }
             #brandTagline, #sidebarNotice, #pageSubtitle, #mutedText {
@@ -1110,7 +1110,7 @@ class QMainApp(QBaseDesktopApp):
             }
             #pageTitle {
                 color: #f8fafc;
-                font-size: 30px;
+                font-size: 28px;
                 font-weight: 700;
             }
             #pageSubtitle {
@@ -1122,7 +1122,7 @@ class QMainApp(QBaseDesktopApp):
                 border-radius: 8px;
                 color: #cbd5e1;
                 font-size: 14px;
-                padding: 10px 12px;
+                padding: 9px 10px;
                 text-align: left;
             }
             #navButton:hover {
@@ -1238,12 +1238,12 @@ class QMainApp(QBaseDesktopApp):
             }
             #mixerValue {
                 color: #ffffff;
-                font-size: 20px;
+                font-size: 19px;
                 font-weight: 700;
             }
             #summaryValue {
                 color: #ffffff;
-                font-size: 22px;
+                font-size: 21px;
                 font-weight: 700;
             }
             QLabel {
