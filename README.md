@@ -2,10 +2,10 @@
 
 An open-source replacement for SteelSeries GG, to manage your Arctis headset on Linux!
 
-[![GitHub Release](https://img.shields.io/github/v/release/elegos/Linux-Arctis-Manager?label=Latest%20Release&color=brightgreen&logo=github&logoColor=white)](https://github.com/elegos/Linux-Arctis-Manager/releases)
+[![GitHub Release](https://img.shields.io/github/v/release/crameep/ArctisManager?label=Latest%20Release&color=brightgreen&logo=github&logoColor=white)](https://github.com/crameep/ArctisManager/releases)
 [![AUR Version](https://img.shields.io/aur/version/linux-arctis-manager?label=AUR%20Package&logo=arch-linux&logoColor=white&color=1793d1)](https://aur.archlinux.org/packages/linux-arctis-manager)
-[![Python](https://img.shields.io/python/required-version-toml?tomlFilePath=https://raw.githubusercontent.com/elegos/Linux-Arctis-Manager/develop/pyproject.toml&logo=python&logoColor=white&label=Python)](https://www.python.org/)
-[![Build](https://img.shields.io/github/actions/workflow/status/elegos/Linux-Arctis-Manager/wheel-install-test.yaml?branch=develop&label=Build&logo=github&logoColor=white)](https://github.com/elegos/Linux-Arctis-Manager/actions/workflows/wheel-install-test.yaml)
+[![Python](https://img.shields.io/python/required-version-toml?tomlFilePath=https://raw.githubusercontent.com/crameep/ArctisManager/codex/start-from-linux-arctis-manager/pyproject.toml&logo=python&logoColor=white&label=Python)](https://www.python.org/)
+[![Build](https://img.shields.io/github/actions/workflow/status/crameep/ArctisManager/wheel-install-test.yaml?branch=codex%2Fstart-from-linux-arctis-manager&label=Build&logo=github&logoColor=white)](https://github.com/crameep/ArctisManager/actions/workflows/wheel-install-test.yaml)
 [![Discord](https://img.shields.io/badge/Discord-join-7289DA?logo=discord&logoColor=white)](https://discord.gg/FXfvUXWXt4)
 [![Fluxer](https://img.shields.io/badge/Fluxer-join-5d5cfe?logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIzLjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCI+PHBhdGggZD0iTTQgOC41YzIuNjYtMi42NiA1LjMzLTIuNjYgOCAwczUuMzMgMi42NiA4IDAiLz48cGF0aCBkPSJNNCAxNS41YzIuNjYtMi42NiA1LjMzLTIuNjYgOCAwczUuMzMgMi42NiA4IDAiLz48L3N2Zz4=)](https://fluxer.gg/beALFGJK)
 
@@ -48,7 +48,7 @@ An open-source replacement for SteelSeries GG, to manage your Arctis headset on 
 | ✅ | **Supported:** supported and fully implemented |
 | ❌ | **Not Implemented:** support not yet available |
 | ➖ | **N/A:** not physically supported by this headset model |
-| ❓ | **Missing Data:** product ID is not yet known. [Help us find it!](https://github.com/elegos/Linux-Arctis-Manager/blob/develop/docs/device_support.md) |
+| ❓ | **Missing Data:** product ID is not yet known. [Help us find it!](https://github.com/crameep/ArctisManager/blob/codex/start-from-linux-arctis-manager/docs/device_support.md) |
 
 ## ⌨️ CLI Commands
 
@@ -67,6 +67,8 @@ Choose the installation method that fits your setup:
 - **[Arch Linux (AUR)](#arch-linux-aur)** - community-maintained package for Arch users
 - **[Manual install](#manual-install)** - for all other Linux distros
 
+Testing the current redesigned branch on a real Linux laptop? See the [Linux laptop test plan](docs/linux-laptop-test-plan.md) for branch install commands, GUI checks, and log collection steps.
+
 ---
 
 ### Distrobox
@@ -74,7 +76,7 @@ Choose the installation method that fits your setup:
 Run the following script to install:
 
 ```bash
-curl -LsSf https://raw.githubusercontent.com/elegos/Linux-Arctis-Manager/refs/heads/develop/scripts/distrobox.sh | sh
+curl -LsSf https://raw.githubusercontent.com/crameep/ArctisManager/refs/heads/codex/start-from-linux-arctis-manager/scripts/distrobox.sh | sh
 ```
 
 > [!NOTE]
@@ -119,7 +121,7 @@ Install `pipx` with your package manager.
 Run the automated install script:
 
 ```bash
-curl -LsSf https://raw.githubusercontent.com/elegos/Linux-Arctis-Manager/refs/heads/main/scripts/install.sh | sh
+curl -LsSf https://raw.githubusercontent.com/crameep/ArctisManager/refs/heads/codex/start-from-linux-arctis-manager/scripts/install.sh | sh
 ```
 > [!TIP]
 > If you use the automated script, you can skip the Final Setup section entirely.
@@ -148,8 +150,8 @@ curl -LsSf https://raw.githubusercontent.com/elegos/Linux-Arctis-Manager/refs/he
 2. Get the source:
 
    ```bash
-   git clone https://github.com/elegos/Linux-Arctis-Manager.git
-   cd Linux-Arctis-Manager
+   git clone --branch codex/start-from-linux-arctis-manager https://github.com/crameep/ArctisManager.git
+   cd ArctisManager
    git pull
    ```
 
@@ -279,6 +281,7 @@ sudo pacman -Rns linux-arctis-manager
 - [Wireshark tutorial](https://www.youtube.com/watch?v=zWbdnHwTr3M)
 - [Device configuration specs](docs/device_configuration_file_specs.md)
 - [Dbus messaging](docs/dbus.md)
+- [Linux laptop test plan](docs/linux-laptop-test-plan.md)
 
 ## ⚠️ Troubleshooting
 
