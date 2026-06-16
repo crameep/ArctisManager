@@ -17,6 +17,7 @@ from linux_arctis_manager.gui.view_models import (
     dashboard_settings_summary,
     dashboard_summary,
     demo_status,
+    device_capability_summary,
     mixer_levels,
 )
 from linux_arctis_manager.i18n import I18n
@@ -56,6 +57,7 @@ class QMainApp(QBaseDesktopApp):
         self.status_widget = QStatusWidget(self.dashboard_status_card)
         self.dashboard_status_card.layout().addWidget(self.status_widget)
         self._refresh_profile_state({})
+        self._refresh_device_capability_state({})
         self._refresh_routing_state({})
         self._refresh_mixer_settings({})
         self._refresh_application_routes({})
@@ -282,6 +284,26 @@ class QMainApp(QBaseDesktopApp):
     def _build_device_page(self) -> QWidget:
         page, layout = self._scroll_page()
 
+        capability_grid = QGridLayout()
+        capability_grid.setSpacing(14)
+        layout.addLayout(capability_grid)
+
+        self.device_capability_state_labels: dict[str, QLabel] = {}
+        self.device_capability_detail_labels: dict[str, QLabel] = {}
+        for index, capability in enumerate(device_capability_summary({})):
+            card = self._card(capability['title'])
+
+            state_label = QLabel(capability['state'])
+            state_label.setObjectName('endpointState')
+            card.layout().addWidget(state_label)
+            self.device_capability_state_labels[capability['key']] = state_label
+
+            detail_label = self._muted_label(capability['detail'])
+            card.layout().addWidget(detail_label)
+            self.device_capability_detail_labels[capability['key']] = detail_label
+
+            capability_grid.addWidget(card, index // 2, index % 2)
+
         self.device_settings_card = self._card('Device Controls')
         self.device_settings_card.layout().addWidget(self._muted_label(
             'Controls appear when the connected headset exposes them over D-Bus.'
@@ -495,6 +517,7 @@ class QMainApp(QBaseDesktopApp):
         self.service_status_label.setText('D-Bus settings connected')
         self._refresh_dashboard_settings(settings)
         self._refresh_profile_state(settings)
+        self._refresh_device_capability_state(settings)
         self._refresh_mixer_settings(settings)
         self._refresh_routing_state(settings)
         self._refresh_application_routes(settings)
@@ -569,6 +592,15 @@ class QMainApp(QBaseDesktopApp):
             else:
                 state_label.setText('Missing')
                 detail_label.setText('Virtual output not available yet.')
+
+    def _refresh_device_capability_state(self, settings: dict) -> None:
+        for capability in device_capability_summary(settings):
+            state_label = self.device_capability_state_labels.get(capability['key'])
+            detail_label = self.device_capability_detail_labels.get(capability['key'])
+            if state_label:
+                state_label.setText(capability['state'])
+            if detail_label:
+                detail_label.setText(capability['detail'])
 
     def _refresh_profile_state(self, settings: dict) -> None:
         profiles = settings.get('profiles', {})

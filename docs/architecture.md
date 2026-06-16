@@ -47,7 +47,7 @@ Named per-device profiles are stored separately in `~/.config/arctis_manager/pro
 
 ## GUI And CLI
 
-The GUI reads D-Bus settings, status, profile metadata, audio endpoint state, and active application routes dynamically instead of hardcoding device-specific controls. The Profiles page uses the settings service to save and load named snapshots for the connected device. The Routing page uses the same service to show virtual output readiness, refresh endpoint state on demand, and move active app streams to ready virtual outputs. The CLI currently focuses on setup tasks, udev generation, desktop entries, and USB/HID discovery.
+The GUI reads D-Bus settings, status, profile metadata, audio endpoint state, and active application routes dynamically instead of hardcoding device-specific controls. The Device page groups exposed headset controls into capability areas such as microphone, noise control, power/wireless, and DAC/display behavior so unsupported features stay visible as unavailable rather than being implied to work. The Profiles page uses the settings service to save and load named snapshots for the connected device. The Routing page uses the same service to show virtual output readiness, refresh endpoint state on demand, and move active app streams to ready virtual outputs. The CLI currently focuses on setup tasks, udev generation, desktop entries, and USB/HID discovery.
 
 ## Testing Strategy
 

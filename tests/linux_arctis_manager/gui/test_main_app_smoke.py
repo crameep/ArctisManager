@@ -199,6 +199,38 @@ def test_routing_page_updates_from_audio_endpoint_metadata():
     window_app.sig_stop()
 
 
+def test_device_page_updates_capability_overview_from_settings_metadata():
+    app = QApplication.instance() or QApplication([])
+    window_app = QMainApp(app, logging.CRITICAL, demo_mode=True)
+
+    window_app.on_settings_received({
+        'device': {
+            'mic_volume': 82,
+            'mic_side_tone': 2,
+            'noise_cancelling': 1,
+            'wireless_mode': 0,
+        },
+        'settings_config': {
+            'mic_volume': {'type': 'slider'},
+            'mic_side_tone': {'type': 'discrete_map'},
+            'noise_cancelling': {'type': 'discrete_map'},
+            'wireless_mode': {'type': 'discrete_map'},
+        },
+    })
+    window_app.switch_panel('device')
+    app.processEvents()
+
+    assert window_app.device_capability_state_labels['microphone'].text() == 'Supported'
+    assert window_app.device_capability_detail_labels['microphone'].text() == 'Controls: Mic Volume / Sidetone'
+    assert window_app.device_capability_state_labels['noise_control'].text() == 'Supported'
+    assert window_app.device_capability_detail_labels['noise_control'].text() == 'Controls: ANC'
+    assert window_app.device_capability_state_labels['power_wireless'].text() == 'Supported'
+    assert window_app.device_capability_detail_labels['power_wireless'].text() == 'Controls: Wireless Mode'
+    assert window_app.device_capability_state_labels['audio_dac'].text() == 'Not exposed'
+
+    window_app.sig_stop()
+
+
 def test_dashboard_uses_settings_for_profile_and_output_readiness():
     app = QApplication.instance() or QApplication([])
     window_app = QMainApp(app, logging.CRITICAL, demo_mode=True)

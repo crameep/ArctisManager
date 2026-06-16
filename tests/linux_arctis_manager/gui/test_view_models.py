@@ -2,6 +2,7 @@ from linux_arctis_manager.gui.view_models import (
     active_profile_name,
     dashboard_settings_summary,
     dashboard_summary,
+    device_capability_summary,
     demo_status,
     flatten_status_values,
     mixer_levels,
@@ -115,6 +116,40 @@ def test_ready_output_endpoint_summary_reports_when_no_outputs_are_ready():
             },
         ],
     }) == 'No virtual outputs ready'
+
+
+def test_device_capability_summary_groups_supported_controls():
+    summary = {
+        capability['key']: capability
+        for capability in device_capability_summary({
+            'device': {
+                'mic_volume': 80,
+                'mic_side_tone': 2,
+                'noise_cancelling': 1,
+                'wireless_mode': 0,
+            },
+            'settings_config': {
+                'mic_volume': {'type': 'slider'},
+                'mic_side_tone': {'type': 'discrete_map'},
+                'noise_cancelling': {'type': 'discrete_map'},
+                'wireless_mode': {'type': 'discrete_map'},
+            },
+        })
+    }
+
+    assert summary['microphone']['state'] == 'Supported'
+    assert summary['microphone']['detail'] == 'Controls: Mic Volume / Sidetone'
+    assert summary['noise_control']['state'] == 'Supported'
+    assert summary['noise_control']['detail'] == 'Controls: ANC'
+    assert summary['power_wireless']['state'] == 'Supported'
+    assert summary['power_wireless']['detail'] == 'Controls: Wireless Mode'
+    assert summary['audio_dac']['state'] == 'Not exposed'
+
+
+def test_device_capability_summary_handles_no_device():
+    summary = device_capability_summary({})
+
+    assert {capability['state'] for capability in summary} == {'No device'}
 
 
 def test_mixer_levels_map_media_and_chat_mix_to_endpoint_groups():
