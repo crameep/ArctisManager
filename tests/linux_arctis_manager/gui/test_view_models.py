@@ -1,5 +1,6 @@
 from linux_arctis_manager.gui.view_models import (
     active_profile_name,
+    chatmix_balance_summary,
     dashboard_settings_summary,
     dashboard_summary,
     device_capability_summary,
@@ -247,6 +248,29 @@ def test_mixer_levels_map_media_and_chat_mix_to_endpoint_groups():
         'Arctis_Media': 35,
         'Arctis_Aux': 35,
         'Arctis_Microphone': 0,
+    }
+
+
+def test_chatmix_balance_summary_reports_media_and_chat_groups():
+    assert chatmix_balance_summary({
+        'gamedac': {
+            'media_mix': {'value': 35, 'type': 'percentage'},
+            'chat_mix': {'value': 65, 'type': 'percentage'},
+        },
+    }) == {
+        'value': 'Game/Media/Aux 35% / Chat 65%',
+        'detail': 'Game, Media, and Aux follow media mix; Chat follows chat mix.',
+        'media_level': 35,
+        'chat_level': 65,
+    }
+
+
+def test_chatmix_balance_summary_handles_missing_mix_status():
+    assert chatmix_balance_summary({}) == {
+        'value': 'Waiting',
+        'detail': 'Waiting for media_mix and chat_mix status values from the headset or GameDAC.',
+        'media_level': 100,
+        'chat_level': 100,
     }
 
 

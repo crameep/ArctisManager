@@ -31,7 +31,7 @@ The planned input endpoint is:
 
 - `Arctis_Microphone`
 
-Only output sinks are currently implemented. Each output sink is created as a null sink and looped back to the physical headset sink. ChatMix is modeled as two mix groups: `chat` applies to `Arctis_Chat`, while `media` applies to `Arctis_Game`, `Arctis_Media`, and `Arctis_Aux`.
+Only output sinks are currently implemented. Each output sink is created as a null sink and looped back to the physical headset sink. ChatMix is modeled as two mix groups: `chat` applies to `Arctis_Chat`, while `media` applies to `Arctis_Game`, `Arctis_Media`, and `Arctis_Aux`. The Mixer page displays these reported mix groups as read-only meters so users can see the current hardware balance without implying software-side ChatMix control that is not implemented yet.
 
 The D-Bus settings service exposes the virtual endpoint catalog and current PulseAudio/PipeWire-pulse state. GUI clients can show whether each implemented virtual output is present, missing, or the current default output without talking to PulseAudio directly.
 

@@ -7,7 +7,7 @@ import pytest
 
 pytest.importorskip('PySide6')
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QSlider
 
 from linux_arctis_manager.gui.main_app import QMainApp
 
@@ -37,6 +37,10 @@ def test_demo_main_window_opens_with_dashboard_and_mixer_content():
     assert window_app.mixer_sliders['Arctis_Microphone'].value() == 0
     assert window_app.mixer_value_labels['Arctis_Microphone'].text() == '0%'
     assert window_app.mixer_state_labels['Arctis_Microphone'].text() == 'Planned'
+    assert window_app.chatmix_balance_value_label.text() == 'Game/Media/Aux 70% / Chat 55%'
+    assert window_app.chatmix_balance_detail_label.text() == 'Game, Media, and Aux follow media mix; Chat follows chat mix.'
+    assert window_app.chatmix_media_balance_slider.findChild(QSlider).value() == 70
+    assert window_app.chatmix_chat_balance_slider.findChild(QSlider).value() == 55
 
     window_app.sig_stop()
 

@@ -355,6 +355,36 @@ def mixer_levels(status: StatusPayload | dict) -> dict[str, int]:
     return result
 
 
+def chatmix_balance_summary(status: StatusPayload | dict) -> dict[str, str | int]:
+    values = flatten_status_values(status)
+    has_media_mix = 'media_mix' in values
+    has_chat_mix = 'chat_mix' in values
+    media_mix = safe_percentage(values.get('media_mix'), 100)
+    chat_mix = safe_percentage(values.get('chat_mix'), 100)
+
+    if not has_media_mix and not has_chat_mix:
+        return {
+            'value': 'Waiting',
+            'detail': 'Waiting for media_mix and chat_mix status values from the headset or GameDAC.',
+            'media_level': media_mix,
+            'chat_level': chat_mix,
+        }
+
+    if has_media_mix and has_chat_mix:
+        detail = 'Game, Media, and Aux follow media mix; Chat follows chat mix.'
+    elif has_media_mix:
+        detail = 'Chat mix is not reported yet; Chat is shown at the default level.'
+    else:
+        detail = 'Media mix is not reported yet; Game, Media, and Aux are shown at the default level.'
+
+    return {
+        'value': f'Game/Media/Aux {media_mix}% / Chat {chat_mix}%',
+        'detail': detail,
+        'media_level': media_mix,
+        'chat_level': chat_mix,
+    }
+
+
 def demo_status() -> StatusPayload:
     return {
         'headset': {

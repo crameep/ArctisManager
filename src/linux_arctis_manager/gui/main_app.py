@@ -14,6 +14,7 @@ from linux_arctis_manager.gui.main_app_proto_widget import QMainAppProtoWidget
 from linux_arctis_manager.gui.status_widget import QStatusWidget
 from linux_arctis_manager.gui.ui_utils import get_icon_pixmap
 from linux_arctis_manager.gui.view_models import (
+    chatmix_balance_summary,
     dashboard_settings_summary,
     dashboard_summary,
     demo_status,
@@ -282,9 +283,20 @@ class QMainApp(QBaseDesktopApp):
             endpoint_grid.addWidget(card, index // 2, index % 2)
 
         balance_card = self._card('ChatMix Balance')
-        balance_card.layout().addWidget(self._muted_label(
+        self.chatmix_balance_value_label = QLabel('Waiting')
+        self.chatmix_balance_value_label.setObjectName('mixerValue')
+        balance_card.layout().addWidget(self.chatmix_balance_value_label)
+
+        self.chatmix_media_balance_slider = self._readonly_meter('Game / Media / Aux')
+        balance_card.layout().addWidget(self.chatmix_media_balance_slider)
+
+        self.chatmix_chat_balance_slider = self._readonly_meter('Chat')
+        balance_card.layout().addWidget(self.chatmix_chat_balance_slider)
+
+        self.chatmix_balance_detail_label = self._muted_label(
             'Hardware ChatMix status updates Game/Media/Aux separately from Chat when supported.'
-        ))
+        )
+        balance_card.layout().addWidget(self.chatmix_balance_detail_label)
         layout.addWidget(balance_card)
 
         return page
@@ -566,6 +578,26 @@ class QMainApp(QBaseDesktopApp):
         card.layout().addWidget(value_label)
         return card
 
+    def _readonly_meter(self, label: str) -> QWidget:
+        meter = QWidget()
+        meter_layout = QHBoxLayout()
+        meter_layout.setContentsMargins(0, 0, 0, 0)
+        meter_layout.setSpacing(10)
+        meter.setLayout(meter_layout)
+
+        label_widget = QLabel(label)
+        label_widget.setObjectName('setupTitle')
+        meter_layout.addWidget(label_widget)
+
+        slider = QSlider(Qt.Orientation.Horizontal)
+        slider.setRange(0, 100)
+        slider.setValue(100)
+        slider.setEnabled(False)
+        slider.setObjectName('mixerSlider')
+        meter_layout.addWidget(slider, 1)
+
+        return meter
+
     def _muted_label(self, text: str) -> QLabel:
         label = QLabel(text)
         label.setObjectName('mutedText')
@@ -679,6 +711,16 @@ class QMainApp(QBaseDesktopApp):
             value_label = self.mixer_value_labels.get(node_name)
             if value_label:
                 value_label.setText(f'{level}%')
+
+        balance = chatmix_balance_summary(status)
+        self.chatmix_balance_value_label.setText(str(balance['value']))
+        self.chatmix_balance_detail_label.setText(str(balance['detail']))
+        media_slider = self.chatmix_media_balance_slider.findChild(QSlider)
+        chat_slider = self.chatmix_chat_balance_slider.findChild(QSlider)
+        if media_slider:
+            media_slider.setValue(int(balance['media_level']))
+        if chat_slider:
+            chat_slider.setValue(int(balance['chat_level']))
 
     def _refresh_mixer_settings(self, settings: dict) -> None:
         endpoint_states = settings.get('audio_endpoints', [])
