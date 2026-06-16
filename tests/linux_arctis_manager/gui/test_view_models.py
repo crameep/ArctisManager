@@ -1,5 +1,6 @@
 from linux_arctis_manager.gui.view_models import (
     active_profile_name,
+    application_route_rows,
     chatmix_balance_summary,
     dashboard_settings_summary,
     dashboard_summary,
@@ -170,6 +171,31 @@ def test_routing_overview_summary_handles_empty_metadata():
     assert summary['outputs_detail'] == 'Catalog: Game / Chat / Media / Aux'
     assert summary['apps_value'] == 'No active streams'
     assert summary['planned_value'] == '1 planned endpoint'
+
+
+def test_application_route_rows_format_stream_metadata():
+    assert application_route_rows({
+        'application_routes': [
+            {
+                'stream_index': 55,
+                'application_name': 'Firefox',
+                'process_binary': 'firefox',
+                'process_id': '1234',
+                'current_endpoint_label': 'Game',
+            },
+            {
+                'stream_index': 'not-an-int',
+                'application_name': 'Ignored',
+            },
+        ],
+    }) == [
+        {
+            'stream_index': 55,
+            'title': 'Firefox',
+            'current': 'Game',
+            'detail': 'firefox | PID 1234 | Stream 55',
+        },
+    ]
 
 
 def test_device_capability_summary_groups_supported_controls():

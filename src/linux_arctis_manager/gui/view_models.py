@@ -225,6 +225,39 @@ def routing_overview_summary(settings: dict) -> dict[str, str]:
     }
 
 
+def application_route_rows(settings: dict) -> list[dict[str, str | int]]:
+    routes = settings.get('application_routes', [])
+    if not isinstance(routes, list):
+        return []
+
+    rows: list[dict[str, str | int]] = []
+    for route in routes:
+        if not isinstance(route, dict) or not isinstance(route.get('stream_index'), int):
+            continue
+
+        stream_index = route['stream_index']
+        app_name = route.get('application_name') or route.get('name') or 'Unknown app'
+        current = route.get('current_endpoint_label') or route.get('sink_description') or route.get('sink_node_name') or 'current output'
+
+        details = []
+        process = route.get('process_binary')
+        process_id = route.get('process_id')
+        if process:
+            details.append(str(process))
+        if process_id:
+            details.append(f'PID {process_id}')
+        details.append(f'Stream {stream_index}')
+
+        rows.append({
+            'stream_index': stream_index,
+            'title': str(app_name),
+            'current': str(current),
+            'detail': ' | '.join(details),
+        })
+
+    return rows
+
+
 def active_profile_name(settings: dict) -> str:
     profiles = settings.get('profiles', {})
     if not isinstance(profiles, dict):

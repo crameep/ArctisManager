@@ -14,6 +14,7 @@ from linux_arctis_manager.gui.main_app_proto_widget import QMainAppProtoWidget
 from linux_arctis_manager.gui.status_widget import QStatusWidget
 from linux_arctis_manager.gui.ui_utils import get_icon_pixmap
 from linux_arctis_manager.gui.view_models import (
+    application_route_rows,
     chatmix_balance_summary,
     dashboard_settings_summary,
     dashboard_summary,
@@ -390,6 +391,22 @@ class QMainApp(QBaseDesktopApp):
         planned.layout().addWidget(self.application_route_status_label)
         layout.addWidget(planned)
 
+        active_streams = self._card('Active App Streams')
+        self.application_route_list_status_label = self._muted_label('Waiting for active playback streams.')
+        active_streams.layout().addWidget(self.application_route_list_status_label)
+
+        self.application_route_rows_container = QWidget()
+        self.application_route_rows_layout = QVBoxLayout()
+        self.application_route_rows_layout.setContentsMargins(0, 0, 0, 0)
+        self.application_route_rows_layout.setSpacing(8)
+        self.application_route_rows_container.setLayout(self.application_route_rows_layout)
+        active_streams.layout().addWidget(self.application_route_rows_container)
+
+        self.application_route_row_titles: list[QLabel] = []
+        self.application_route_row_details: list[QLabel] = []
+        self.application_route_row_current_labels: list[QLabel] = []
+        layout.addWidget(active_streams)
+
         route_grid = QGridLayout()
         route_grid.setSpacing(14)
         layout.addLayout(route_grid)
@@ -635,6 +652,49 @@ class QMainApp(QBaseDesktopApp):
         row_layout.addWidget(state_label)
 
         return row
+
+    def _application_route_row(self, title: str, detail: str, current: str) -> QWidget:
+        row = QWidget()
+        row.setObjectName('appRouteRow')
+        row_layout = QHBoxLayout()
+        row_layout.setContentsMargins(10, 8, 10, 8)
+        row_layout.setSpacing(12)
+        row.setLayout(row_layout)
+
+        copy = QWidget()
+        copy_layout = QVBoxLayout()
+        copy_layout.setContentsMargins(0, 0, 0, 0)
+        copy_layout.setSpacing(3)
+        copy.setLayout(copy_layout)
+
+        title_label = QLabel(title)
+        title_label.setObjectName('appRouteTitle')
+        title_label.setWordWrap(True)
+        copy_layout.addWidget(title_label)
+
+        detail_label = self._muted_label(detail)
+        copy_layout.addWidget(detail_label)
+        row_layout.addWidget(copy, 1)
+
+        current_label = QLabel(current)
+        current_label.setObjectName('appRouteCurrent')
+        current_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        current_label.setWordWrap(True)
+        row_layout.addWidget(current_label)
+
+        self.application_route_row_titles.append(title_label)
+        self.application_route_row_details.append(detail_label)
+        self.application_route_row_current_labels.append(current_label)
+
+        return row
+
+    @staticmethod
+    def _clear_layout(layout: QVBoxLayout) -> None:
+        while layout.count():
+            item = layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
 
     def switch_panel(self, panel: PanelName) -> None:
         self.stack.setCurrentWidget(self.pages[panel])
@@ -941,13 +1001,12 @@ class QMainApp(QBaseDesktopApp):
             and endpoint.get('present') is True
             and isinstance(endpoint.get('node_name'), str)
         ]
+        route_rows = application_route_rows({'application_routes': valid_routes})
 
         self.route_app_stream_combo.clear()
-        if valid_routes:
-            for route in valid_routes:
-                app_name = route.get('application_name') or route.get('name') or 'Unknown app'
-                current = route.get('current_endpoint_label') or route.get('sink_description') or route.get('sink_node_name') or 'current output'
-                self.route_app_stream_combo.addItem(f'{app_name} -> {current}', route['stream_index'])
+        if route_rows:
+            for route in route_rows:
+                self.route_app_stream_combo.addItem(f"{route['title']} -> {route['current']}", route['stream_index'])
         else:
             self.route_app_stream_combo.addItem('No active app streams', -1)
 
@@ -962,6 +1021,7 @@ class QMainApp(QBaseDesktopApp):
         self.route_app_stream_combo.setEnabled(controls_enabled)
         self.route_endpoint_combo.setEnabled(controls_enabled)
         self.assign_route_button.setEnabled(controls_enabled)
+        self._refresh_application_route_rows(route_rows)
 
         if not self.dbus_wrapper:
             self.application_route_status_label.setText('Demo mode: app routing needs the D-Bus service.')
@@ -971,6 +1031,28 @@ class QMainApp(QBaseDesktopApp):
             self.application_route_status_label.setText('No implemented virtual outputs are ready yet.')
         else:
             self.application_route_status_label.setText(f'{len(valid_routes)} active app stream(s) can be assigned.')
+
+    def _refresh_application_route_rows(self, route_rows: list[dict[str, str | int]]) -> None:
+        self._clear_layout(self.application_route_rows_layout)
+        self.application_route_row_titles = []
+        self.application_route_row_details = []
+        self.application_route_row_current_labels = []
+
+        if not route_rows:
+            self.application_route_list_status_label.setText('No active playback streams reported yet.')
+            self.application_route_rows_container.setVisible(False)
+            return
+
+        self.application_route_rows_container.setVisible(True)
+        count = len(route_rows)
+        label = 'active playback stream' if count == 1 else 'active playback streams'
+        self.application_route_list_status_label.setText(f'{count} {label} reported by PulseAudio/PipeWire-pulse.')
+        for route in route_rows:
+            self.application_route_rows_layout.addWidget(self._application_route_row(
+                str(route['title']),
+                str(route['detail']),
+                str(route['current']),
+            ))
 
     def _on_assign_route_clicked(self) -> None:
         if not self.dbus_wrapper:
@@ -1084,6 +1166,21 @@ class QMainApp(QBaseDesktopApp):
             #routeState {
                 color: #ffffff;
                 font-size: 18px;
+                font-weight: 700;
+            }
+            #appRouteRow {
+                background: #101820;
+                border: 1px solid #263241;
+                border-radius: 6px;
+            }
+            #appRouteTitle {
+                color: #f8fafc;
+                font-size: 13px;
+                font-weight: 700;
+            }
+            #appRouteCurrent {
+                color: #ffffff;
+                font-size: 13px;
                 font-weight: 700;
             }
             #endpointState {

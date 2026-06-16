@@ -202,6 +202,10 @@ def test_routing_page_updates_from_audio_endpoint_metadata():
     assert window_app.route_endpoint_combo.currentData() == 'Arctis_Game'
     assert window_app.assign_route_button.isEnabled()
     assert window_app.application_route_status_label.text() == '1 active app stream(s) can be assigned.'
+    assert window_app.application_route_list_status_label.text() == '1 active playback stream reported by PulseAudio/PipeWire-pulse.'
+    assert [label.text() for label in window_app.application_route_row_titles] == ['Firefox']
+    assert [label.text() for label in window_app.application_route_row_details] == ['firefox | PID 1234 | Stream 55']
+    assert [label.text() for label in window_app.application_route_row_current_labels] == ['Game']
 
     window_app._on_refresh_routing_clicked()
     window_app._on_assign_route_clicked()
