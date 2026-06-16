@@ -72,12 +72,33 @@ lam-gui
 - Mixer shows Game, Chat, Media, Aux, and planned Microphone rows.
 - ChatMix balance is readable and changes when the hardware reports new values.
 - Routing shows virtual endpoint readiness.
+- Routing shows active playback apps when audio is playing.
+- Moving an active app stream to Game, Chat, Media, or Aux updates the route map and keeps audio audible.
 - Profiles can save a named profile and load it again.
 - Settings shows setup and service state clearly.
 
 Do not treat Microphone routing, EQ, noise suppression, app auto-switching, or PipeWire-native routing as complete yet. Those are planned or future areas unless the GUI says otherwise.
 
-## 6. Collect Debug Info
+## 6. Per-App Routing Check
+
+Use a browser, music player, or game that is actively producing sound. Keep the audio playing while testing.
+
+1. Open the Routing page.
+2. Confirm the app appears under Active App Streams.
+3. Select the app and choose a ready output such as Game or Chat.
+4. Click Assign Selected App.
+5. Confirm the Route Map shows the app under the selected endpoint.
+6. Repeat with another ready endpoint if available.
+
+From a terminal, this command should show the app stream and the sink it is using:
+
+```bash
+pactl list short sink-inputs
+```
+
+Expected result: active playback streams can move between ready Game, Chat, Media, and Aux outputs. Microphone remains marked planned.
+
+## 7. Collect Debug Info
 
 If something fails, collect:
 
@@ -91,7 +112,7 @@ journalctl --user -u arctis-manager -n 200 --no-pager
 
 Also note the Linux distribution, desktop environment, headset model, and whether the headset is connected by USB cable, DAC, or wireless dongle.
 
-## 7. Cleanup
+## 8. Cleanup
 
 ```bash
 systemctl --user disable --now arctis-manager
