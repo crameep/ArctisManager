@@ -90,6 +90,15 @@ def test_demo_main_window_opens_with_dashboard_and_mixer_content():
     assert window_app.routing_state_labels['Arctis_Microphone'].text() == 'Planned'
     assert window_app.routing_state_labels['Arctis_Microphone'].property('state') == 'planned'
     assert [label.text() for label in window_app.application_route_row_titles] == ['Firefox', 'Discord']
+    assert window_app.route_map_state_labels['Arctis_Game'].text() == '1 active app'
+    assert window_app.route_map_state_labels['Arctis_Game'].property('state') == 'ready'
+    assert window_app.route_map_detail_labels['Arctis_Game'].text() == 'Assigned: Firefox'
+    assert window_app.route_map_state_labels['Arctis_Chat'].text() == '1 active app'
+    assert window_app.route_map_detail_labels['Arctis_Chat'].text() == 'Assigned: Discord'
+    assert window_app.route_map_state_labels['Arctis_Media'].text() == 'Ready'
+    assert window_app.route_map_detail_labels['Arctis_Media'].text() == 'No active app streams are assigned to this output yet.'
+    assert window_app.route_map_state_labels['Arctis_Aux'].text() == 'Missing'
+    assert window_app.route_map_state_labels['Arctis_Microphone'].text() == 'Planned'
     assert not window_app.assign_route_button.isEnabled()
 
     window_app.sig_stop()
@@ -302,6 +311,13 @@ def test_routing_page_updates_from_audio_endpoint_metadata():
     assert [label.text() for label in window_app.application_route_row_titles] == ['Firefox']
     assert [label.text() for label in window_app.application_route_row_details] == ['firefox | PID 1234 | Stream 55']
     assert [label.text() for label in window_app.application_route_row_current_labels] == ['Game']
+    assert window_app.route_map_state_labels['Arctis_Game'].text() == '1 active app'
+    assert window_app.route_map_state_labels['Arctis_Game'].property('state') == 'ready'
+    assert window_app.route_map_detail_labels['Arctis_Game'].text() == 'Assigned: Firefox'
+    assert window_app.route_map_state_labels['Arctis_Chat'].text() == 'Missing'
+    assert window_app.route_map_detail_labels['Arctis_Chat'].text() == 'Virtual output is not available yet.'
+    assert window_app.route_map_state_labels['Arctis_Microphone'].text() == 'Planned'
+    assert window_app.route_map_detail_labels['Arctis_Microphone'].text() == 'Microphone source routing is planned; app routing applies to playback outputs today.'
 
     window_app._on_refresh_routing_clicked()
     window_app._on_assign_route_clicked()

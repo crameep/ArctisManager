@@ -342,6 +342,87 @@ def application_route_rows(settings: dict) -> list[dict[str, str | int]]:
     return rows
 
 
+def endpoint_route_map(settings: dict) -> list[dict[str, str]]:
+    endpoint_states = settings.get('audio_endpoints', [])
+    if not isinstance(endpoint_states, list):
+        endpoint_states = []
+
+    states_by_node = {
+        state.get('node_name'): state
+        for state in endpoint_states
+        if isinstance(state, dict) and isinstance(state.get('node_name'), str)
+    }
+
+    route_rows = application_route_rows(settings)
+    raw_routes = settings.get('application_routes', [])
+    if not isinstance(raw_routes, list):
+        raw_routes = []
+
+    rows_by_stream = {
+        route['stream_index']: route
+        for route in route_rows
+        if isinstance(route.get('stream_index'), int)
+    }
+    apps_by_endpoint: dict[str, list[str]] = {}
+    for raw_route in raw_routes:
+        if not isinstance(raw_route, dict) or not isinstance(raw_route.get('stream_index'), int):
+            continue
+
+        endpoint_node = raw_route.get('current_endpoint_node_name') or raw_route.get('sink_node_name')
+        if not isinstance(endpoint_node, str) or not endpoint_node:
+            label = raw_route.get('current_endpoint_label')
+            endpoint_node = next(
+                (
+                    endpoint.node_name
+                    for endpoint in VIRTUAL_AUDIO_ENDPOINTS
+                    if isinstance(label, str) and label == endpoint.label
+                ),
+                '',
+            )
+        if not endpoint_node:
+            continue
+
+        route = rows_by_stream.get(raw_route['stream_index'])
+        title = str(route['title']) if route else str(raw_route.get('application_name') or raw_route.get('name') or 'Unknown app')
+        apps_by_endpoint.setdefault(endpoint_node, []).append(title)
+
+    result = []
+    for endpoint in VIRTUAL_AUDIO_ENDPOINTS:
+        state = states_by_node.get(endpoint.node_name, {})
+        label = str(state.get('label') or endpoint.label) if isinstance(state, dict) else endpoint.label
+        apps = apps_by_endpoint.get(endpoint.node_name, [])
+
+        if not endpoint.implemented:
+            value = 'Planned'
+            detail = 'Microphone source routing is planned; app routing applies to playback outputs today.'
+        elif apps:
+            count = len(apps)
+            value = f'{count} active app' if count == 1 else f'{count} active apps'
+            visible = apps[:3]
+            overflow = count - len(visible)
+            detail = f"Assigned: {' / '.join(visible)}"
+            if overflow:
+                detail = f'{detail} / +{overflow} more'
+        elif isinstance(state, dict) and state.get('present') is True:
+            value = 'Ready'
+            detail = 'No active app streams are assigned to this output yet.'
+        elif endpoint_states:
+            value = 'Missing'
+            detail = 'Virtual output is not available yet.'
+        else:
+            value = 'Waiting'
+            detail = 'Waiting for endpoint state and active app streams.'
+
+        result.append({
+            'key': endpoint.node_name,
+            'title': label,
+            'state': value,
+            'detail': detail,
+        })
+
+    return result
+
+
 def profile_app_context_summary(settings: dict) -> dict[str, str]:
     route_rows = application_route_rows(settings)
     if not route_rows:

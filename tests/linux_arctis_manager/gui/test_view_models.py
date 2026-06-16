@@ -11,6 +11,7 @@ from linux_arctis_manager.gui.view_models import (
     device_control_snapshot,
     demo_settings,
     demo_status,
+    endpoint_route_map,
     flatten_status_values,
     header_context_summary,
     mixer_levels,
@@ -301,6 +302,79 @@ def test_application_route_rows_format_stream_metadata():
             'title': 'Firefox',
             'current': 'Game',
             'detail': 'firefox | PID 1234 | Stream 55',
+        },
+    ]
+
+
+def test_endpoint_route_map_groups_active_apps_by_virtual_endpoint():
+    route_map = {
+        item['key']: item
+        for item in endpoint_route_map(demo_settings())
+    }
+
+    assert route_map['Arctis_Game'] == {
+        'key': 'Arctis_Game',
+        'title': 'Game',
+        'state': '1 active app',
+        'detail': 'Assigned: Firefox',
+    }
+    assert route_map['Arctis_Chat'] == {
+        'key': 'Arctis_Chat',
+        'title': 'Chat',
+        'state': '1 active app',
+        'detail': 'Assigned: Discord',
+    }
+    assert route_map['Arctis_Media'] == {
+        'key': 'Arctis_Media',
+        'title': 'Media',
+        'state': 'Ready',
+        'detail': 'No active app streams are assigned to this output yet.',
+    }
+    assert route_map['Arctis_Aux'] == {
+        'key': 'Arctis_Aux',
+        'title': 'Aux',
+        'state': 'Missing',
+        'detail': 'Virtual output is not available yet.',
+    }
+    assert route_map['Arctis_Microphone'] == {
+        'key': 'Arctis_Microphone',
+        'title': 'Microphone',
+        'state': 'Planned',
+        'detail': 'Microphone source routing is planned; app routing applies to playback outputs today.',
+    }
+
+
+def test_endpoint_route_map_handles_missing_metadata():
+    assert endpoint_route_map({}) == [
+        {
+            'key': 'Arctis_Game',
+            'title': 'Game',
+            'state': 'Waiting',
+            'detail': 'Waiting for endpoint state and active app streams.',
+        },
+        {
+            'key': 'Arctis_Chat',
+            'title': 'Chat',
+            'state': 'Waiting',
+            'detail': 'Waiting for endpoint state and active app streams.',
+        },
+        {
+            'key': 'Arctis_Media',
+            'title': 'Media',
+            'state': 'Waiting',
+            'detail': 'Waiting for endpoint state and active app streams.',
+        },
+        {
+            'key': 'Arctis_Aux',
+            'title': 'Aux',
+            'state': 'Waiting',
+            'detail': 'Waiting for endpoint state and active app streams.',
+        },
+        {
+            'key': 'Arctis_Microphone',
+            'title': 'Microphone',
+            'state': 'Planned',
+            'detail': 'Microphone source routing is planned; app routing applies to playback outputs today.',
         },
     ]
 

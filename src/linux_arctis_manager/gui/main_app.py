@@ -24,6 +24,7 @@ from linux_arctis_manager.gui.view_models import (
     demo_status,
     device_capability_summary,
     device_control_snapshot,
+    endpoint_route_map,
     header_context_summary,
     mixer_levels,
     mixer_overview_summary,
@@ -75,6 +76,7 @@ class QMainApp(QBaseDesktopApp):
         self._refresh_device_control_snapshot({})
         self._refresh_routing_overview({})
         self._refresh_routing_state({})
+        self._refresh_route_map({})
         self._refresh_mixer_overview({})
         self._refresh_mixer_settings({})
         self._refresh_application_routes({})
@@ -526,6 +528,20 @@ class QMainApp(QBaseDesktopApp):
         self.application_route_row_current_labels: list[QLabel] = []
         layout.addWidget(active_streams)
 
+        route_map = self._card('Route Map')
+        self.route_map_state_labels: dict[str, QLabel] = {}
+        self.route_map_detail_labels: dict[str, QLabel] = {}
+        for item in endpoint_route_map({}):
+            row = self._setup_step_row(
+                item['title'],
+                item['state'],
+                item['detail'],
+            )
+            route_map.layout().addWidget(row)
+            self.route_map_state_labels[item['key']] = row.findChild(QLabel, 'setupState')
+            self.route_map_detail_labels[item['key']] = row.findChild(QLabel, 'mutedText')
+        layout.addWidget(route_map)
+
         route_grid = QGridLayout()
         route_grid.setSpacing(14)
         layout.addLayout(route_grid)
@@ -932,6 +948,7 @@ class QMainApp(QBaseDesktopApp):
         self._refresh_mixer_settings(settings)
         self._refresh_routing_state(settings)
         self._refresh_application_routes(settings)
+        self._refresh_route_map(settings)
 
     def on_status_received(self, status):
         if status == self.status:
@@ -1240,6 +1257,15 @@ class QMainApp(QBaseDesktopApp):
                 self._set_state_label(value_label, summary[f'{key}_value'])
             if detail_label:
                 detail_label.setText(summary[f'{key}_detail'])
+
+    def _refresh_route_map(self, settings: dict) -> None:
+        for item in endpoint_route_map(settings):
+            state_label = self.route_map_state_labels.get(item['key'])
+            detail_label = self.route_map_detail_labels.get(item['key'])
+            if state_label:
+                self._set_state_label(state_label, item['state'])
+            if detail_label:
+                detail_label.setText(item['detail'])
 
     def _refresh_application_routes(self, settings: dict) -> None:
         routes = settings.get('application_routes', [])
