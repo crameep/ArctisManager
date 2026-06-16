@@ -312,20 +312,35 @@ def profile_workflow_summary(settings: dict) -> dict[str, str]:
     }
 
 
+def connected_device_name(settings: dict, fallback: str = 'No device detected') -> str:
+    device_info = settings.get('device_info', {})
+    if not isinstance(device_info, dict):
+        return fallback
+
+    name = device_info.get('name')
+    return name if isinstance(name, str) and name else fallback
+
+
 def dashboard_settings_summary(settings: dict) -> dict[str, str]:
-    return {
+    summary = {
         'outputs': ready_output_endpoint_summary(settings),
         'profile': active_profile_name(settings),
     }
 
+    device_name = connected_device_name(settings, '')
+    if device_name:
+        summary['device'] = device_name
 
-def dashboard_summary(status: StatusPayload | dict) -> dict[str, str]:
+    return summary
+
+
+def dashboard_summary(status: StatusPayload | dict, settings: dict | None = None) -> dict[str, str]:
     values = flatten_status_values(status)
     online_state = first_status_value(values, ['headset_power_status', 'bluetooth_power_status'], 'Connected' if status else 'No device detected')
     mic_state = first_status_value(values, ['mic_status', 'mic_volume'], 'Unknown')
 
     return {
-        'device': online_state,
+        'device': connected_device_name(settings or {}, online_state),
         'battery': first_status_value(values, ['headset_battery_charge', 'charge_slot_battery_charge'], 'Unknown'),
         'microphone': mic_state,
     }

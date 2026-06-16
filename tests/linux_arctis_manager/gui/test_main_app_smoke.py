@@ -285,6 +285,11 @@ def test_dashboard_uses_settings_for_profile_and_output_readiness():
             'available': ['Default', 'Movie Night'],
             'active': 'Movie Night',
         },
+        'device_info': {
+            'name': 'SteelSeries Arctis Nova 7',
+            'vendor_id': '1038',
+            'product_id': '2202',
+        },
         'audio_endpoints': [
             {
                 'node_name': 'Arctis_Game',
@@ -310,7 +315,7 @@ def test_dashboard_uses_settings_for_profile_and_output_readiness():
     })
     app.processEvents()
 
-    assert window_app.dashboard_cards['device'].text() == 'online'
+    assert window_app.dashboard_cards['device'].text() == 'SteelSeries Arctis Nova 7'
     assert window_app.dashboard_cards['battery'].text() == '91%'
     assert window_app.dashboard_cards['outputs'].text() == '1 ready: Game'
     assert window_app.dashboard_cards['profile'].text() == 'Movie Night'

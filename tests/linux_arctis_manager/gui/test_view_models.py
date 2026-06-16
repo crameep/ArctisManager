@@ -2,6 +2,7 @@ from linux_arctis_manager.gui.view_models import (
     active_profile_name,
     application_route_rows,
     chatmix_balance_summary,
+    connected_device_name,
     dashboard_settings_summary,
     dashboard_summary,
     device_capability_summary,
@@ -50,6 +51,25 @@ def test_dashboard_summary_reports_status_and_outputs():
     }
 
 
+def test_dashboard_summary_prefers_connected_device_name_from_settings():
+    status = {
+        'headset': {
+            'headset_power_status': {'value': 'online', 'type': 'label'},
+            'headset_battery_charge': {'value': 87, 'type': 'percentage'},
+        },
+    }
+    settings = {
+        'device_info': {
+            'name': 'SteelSeries Arctis Nova 7',
+            'vendor_id': '1038',
+            'product_id': '2202',
+        },
+    }
+
+    assert connected_device_name(settings) == 'SteelSeries Arctis Nova 7'
+    assert dashboard_summary(status, settings)['device'] == 'SteelSeries Arctis Nova 7'
+
+
 def test_dashboard_summary_handles_empty_status():
     assert dashboard_summary({}) == {
         'device': 'No device detected',
@@ -91,9 +111,15 @@ def test_dashboard_settings_summary_reports_ready_outputs_and_active_profile():
                 'present': False,
             },
         ],
+        'device_info': {
+            'name': 'SteelSeries Arctis Nova Pro Wireless',
+            'vendor_id': '1038',
+            'product_id': '12e0',
+        },
     }
 
     assert dashboard_settings_summary(settings) == {
+        'device': 'SteelSeries Arctis Nova Pro Wireless',
         'outputs': '2 ready: Game / Chat',
         'profile': 'Late Night',
     }

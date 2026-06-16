@@ -96,6 +96,18 @@ class ArctisManagerDbusSettingsService(ServiceInterface):
 
         return store.metadata() if store else {'available': [], 'active': 'Default'}
 
+    def _device_metadata(self) -> dict[str, str]:
+        device_config = self.core_engine.device_config
+        usb_device = self.core_engine.usb_device
+        if device_config is None or usb_device is None:
+            return {}
+
+        return {
+            'name': device_config.name,
+            'vendor_id': f'{usb_device.idVendor:04x}',
+            'product_id': f'{usb_device.idProduct:04x}',
+        }
+
     def _audio_endpoint_metadata(self) -> list[dict]:
         try:
             return self.core_engine.pa_audio_manager.virtual_endpoint_statuses()
@@ -132,6 +144,7 @@ class ArctisManagerDbusSettingsService(ServiceInterface):
         settings = {
             'general': general_settings.to_dict(),
             'device': {},
+            'device_info': self._device_metadata(),
             'profiles': self._profile_metadata(),
             'audio_endpoints': self._audio_endpoint_metadata(),
             'application_routes': self._application_route_metadata(),

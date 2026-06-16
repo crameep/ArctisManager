@@ -753,7 +753,7 @@ class QMainApp(QBaseDesktopApp):
             self.setup_state_labels['dbus'].setText(dbus_state)
 
     def _refresh_dashboard_status(self, status: dict) -> None:
-        for key, value in dashboard_summary(status).items():
+        for key, value in dashboard_summary(status, self.settings).items():
             if key in self.dashboard_cards:
                 self.dashboard_cards[key].setText(value)
 

@@ -26,9 +26,10 @@ The response varies depending on the list, but it will always return a list of o
 - **Response format**: JSON
 - **Specs**:
 
-The response has six sections:
+The response has seven sections:
 - `general`: for general (cross-device) settings.
 - `device`: for device-specific settings. Will be an empty object if no device is connected.
+- `device_info`: matched device name and USB IDs. Will be an empty object if no device is connected.
 - `profiles`: available and active named profiles for the connected device.
 - `audio_endpoints`: virtual endpoint catalog plus current PulseAudio/PipeWire-pulse state.
 - `application_routes`: active application playback streams and their current output route.
@@ -47,6 +48,11 @@ The clients shouldn't hard-core the settings, but read them and parse them depen
         "setting_a": 10,
         "setting_b": 0,
         "setting_c": 10
+    },
+    "device_info": {
+        "name": "SteelSeries Arctis Nova Pro Wireless",
+        "vendor_id": "1038",
+        "product_id": "12e0"
     },
     "profiles": {
         "available": ["Default", "Late Night"],
