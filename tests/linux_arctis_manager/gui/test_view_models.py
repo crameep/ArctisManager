@@ -3,6 +3,7 @@ from linux_arctis_manager.gui.view_models import (
     application_route_rows,
     chatmix_balance_summary,
     connected_device_name,
+    dashboard_control_surface_summary,
     dashboard_detail_summary,
     dashboard_settings_summary,
     dashboard_summary,
@@ -517,6 +518,52 @@ def test_chatmix_balance_summary_handles_missing_mix_status():
         'media_level': 100,
         'chat_level': 100,
     }
+
+
+def test_dashboard_control_surface_summary_reports_mix_routes_and_controls():
+    assert dashboard_control_surface_summary(demo_status(), demo_settings()) == [
+        {
+            'key': 'mix',
+            'title': 'ChatMix',
+            'state': 'Ready',
+            'detail': 'Game/Media/Aux 70% / Chat 55%. Game, Media, and Aux follow media mix; Chat follows chat mix.',
+        },
+        {
+            'key': 'routes',
+            'title': 'App Routes',
+            'state': '2 active streams',
+            'detail': 'Streams: Firefox -> Game / Discord -> Chat',
+        },
+        {
+            'key': 'controls',
+            'title': 'Device Controls',
+            'state': '4 supported areas',
+            'detail': 'Available: Microphone / Noise Control / Power & Wireless / Audio & DAC',
+        },
+    ]
+
+
+def test_dashboard_control_surface_summary_handles_no_device():
+    assert dashboard_control_surface_summary({}, {}) == [
+        {
+            'key': 'mix',
+            'title': 'ChatMix',
+            'state': 'Waiting',
+            'detail': 'Waiting for media_mix and chat_mix status values from the headset or GameDAC.',
+        },
+        {
+            'key': 'routes',
+            'title': 'App Routes',
+            'state': 'No active streams',
+            'detail': 'Open audio apps will appear here when PulseAudio/PipeWire-pulse reports active playback streams.',
+        },
+        {
+            'key': 'controls',
+            'title': 'Device Controls',
+            'state': 'No device',
+            'detail': 'Connect a supported headset to expose device controls.',
+        },
+    ]
 
 
 def test_safe_percentage_clamps_and_falls_back():

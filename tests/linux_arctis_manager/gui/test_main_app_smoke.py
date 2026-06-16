@@ -33,6 +33,15 @@ def test_demo_main_window_opens_with_dashboard_and_mixer_content():
     assert window_app.dashboard_card_details['microphone'].text() == 'Mute state: unmuted'
     assert window_app.dashboard_card_details['outputs'].text() == 'Ready: Game / Chat / Media | Missing: Aux | Planned: Microphone'
     assert window_app.dashboard_card_details['profile'].text() == 'Saved: Default / Late Night / Footsteps'
+    assert window_app.dashboard_control_state_labels['mix'].text() == 'Ready'
+    assert window_app.dashboard_control_state_labels['mix'].property('state') == 'ready'
+    assert window_app.dashboard_control_detail_labels['mix'].text() == 'Game/Media/Aux 70% / Chat 55%. Game, Media, and Aux follow media mix; Chat follows chat mix.'
+    assert window_app.dashboard_control_state_labels['routes'].text() == '2 active streams'
+    assert window_app.dashboard_control_state_labels['routes'].property('state') == 'ready'
+    assert window_app.dashboard_control_detail_labels['routes'].text() == 'Streams: Firefox -> Game / Discord -> Chat'
+    assert window_app.dashboard_control_state_labels['controls'].text() == '4 supported areas'
+    assert window_app.dashboard_control_state_labels['controls'].property('state') == 'ready'
+    assert window_app.dashboard_control_detail_labels['controls'].text() == 'Available: Microphone / Noise Control / Power & Wireless / Audio & DAC'
 
     window_app.switch_panel('mixer')
     app.processEvents()

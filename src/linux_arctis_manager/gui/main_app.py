@@ -16,6 +16,7 @@ from linux_arctis_manager.gui.ui_utils import get_icon_pixmap
 from linux_arctis_manager.gui.view_models import (
     application_route_rows,
     chatmix_balance_summary,
+    dashboard_control_surface_summary,
     dashboard_detail_summary,
     dashboard_settings_summary,
     dashboard_summary,
@@ -76,6 +77,7 @@ class QMainApp(QBaseDesktopApp):
         self._refresh_mixer_settings({})
         self._refresh_application_routes({})
         self._refresh_dashboard_settings({})
+        self._refresh_dashboard_control_surface()
 
         if self.dbus_wrapper:
             from linux_arctis_manager.gui.settings_widget import QSettingsWidget
@@ -241,6 +243,20 @@ class QMainApp(QBaseDesktopApp):
             if detail_label is not None:
                 self.dashboard_card_details[key] = detail_label
             summary_grid.addWidget(card, index // 2, index % 2)
+
+        control_surface = self._card('Control Surface')
+        self.dashboard_control_state_labels: dict[str, QLabel] = {}
+        self.dashboard_control_detail_labels: dict[str, QLabel] = {}
+        for item in dashboard_control_surface_summary({}, {}):
+            row = self._setup_step_row(
+                item['title'],
+                item['state'],
+                item['detail'],
+            )
+            control_surface.layout().addWidget(row)
+            self.dashboard_control_state_labels[item['key']] = row.findChild(QLabel, 'setupState')
+            self.dashboard_control_detail_labels[item['key']] = row.findChild(QLabel, 'mutedText')
+        layout.addWidget(control_surface)
 
         quick_controls = self._card('Quick Controls')
         quick_actions = QWidget()
@@ -907,17 +923,28 @@ class QMainApp(QBaseDesktopApp):
             if key in self.dashboard_cards:
                 self.dashboard_cards[key].setText(value)
         self._refresh_dashboard_details()
+        self._refresh_dashboard_control_surface()
 
     def _refresh_dashboard_settings(self, settings: dict) -> None:
         for key, value in dashboard_settings_summary(settings).items():
             if key in self.dashboard_cards:
                 self.dashboard_cards[key].setText(value)
         self._refresh_dashboard_details()
+        self._refresh_dashboard_control_surface()
 
     def _refresh_dashboard_details(self) -> None:
         for key, detail in dashboard_detail_summary(self.status, self.settings).items():
             if key in self.dashboard_card_details:
                 self.dashboard_card_details[key].setText(detail)
+
+    def _refresh_dashboard_control_surface(self) -> None:
+        for item in dashboard_control_surface_summary(self.status, self.settings):
+            state_label = self.dashboard_control_state_labels.get(item['key'])
+            detail_label = self.dashboard_control_detail_labels.get(item['key'])
+            if state_label:
+                self._set_state_label(state_label, item['state'])
+            if detail_label:
+                detail_label.setText(item['detail'])
 
     def _refresh_mixer_status(self, status: dict) -> None:
         for node_name, level in mixer_levels(status).items():

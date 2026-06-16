@@ -732,6 +732,56 @@ def chatmix_balance_summary(status: StatusPayload | dict) -> dict[str, str | int
     }
 
 
+def dashboard_control_surface_summary(status: StatusPayload | dict, settings: dict | None = None) -> list[dict[str, str]]:
+    settings = settings or {}
+    balance = chatmix_balance_summary(status)
+    if balance['value'] == 'Waiting':
+        mix_state = 'Waiting'
+        mix_detail = str(balance['detail'])
+    else:
+        mix_state = 'Ready'
+        mix_detail = f"{balance['value']}. {balance['detail']}"
+
+    routing = routing_overview_summary(settings)
+    capabilities = device_capability_summary(settings)
+    supported_capabilities = [
+        capability['title']
+        for capability in capabilities
+        if capability['state'] == 'Supported'
+    ]
+    if supported_capabilities:
+        control_count = len(supported_capabilities)
+        control_state = f'{control_count} supported area' if control_count == 1 else f'{control_count} supported areas'
+        control_detail = f"Available: {' / '.join(supported_capabilities)}"
+    elif any(capability['state'] == 'Not exposed' for capability in capabilities):
+        control_state = 'Not exposed'
+        control_detail = 'This headset is connected, but no mapped control groups are exposed yet.'
+    else:
+        control_state = 'No device'
+        control_detail = 'Connect a supported headset to expose device controls.'
+
+    return [
+        {
+            'key': 'mix',
+            'title': 'ChatMix',
+            'state': mix_state,
+            'detail': mix_detail,
+        },
+        {
+            'key': 'routes',
+            'title': 'App Routes',
+            'state': routing['apps_value'],
+            'detail': routing['apps_detail'],
+        },
+        {
+            'key': 'controls',
+            'title': 'Device Controls',
+            'state': control_state,
+            'detail': control_detail,
+        },
+    ]
+
+
 def demo_status() -> StatusPayload:
     return {
         'headset': {
