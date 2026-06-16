@@ -158,6 +158,50 @@ def active_profile_name(settings: dict) -> str:
     return active if isinstance(active, str) and active else 'Default'
 
 
+def available_profile_names(settings: dict) -> list[str]:
+    profiles = settings.get('profiles', {})
+    if not isinstance(profiles, dict):
+        return []
+
+    available = profiles.get('available', [])
+    if not isinstance(available, list):
+        return []
+
+    return [profile for profile in available if isinstance(profile, str) and profile]
+
+
+def profile_workflow_summary(settings: dict) -> dict[str, str]:
+    available = available_profile_names(settings)
+    count = len(available)
+    if count == 0:
+        saved_value = 'No saved profiles'
+        saved_detail = 'Save the current device settings to start a per-device profile list.'
+    else:
+        saved_value = f'{count} saved profile' if count == 1 else f'{count} saved profiles'
+        visible = available[:4]
+        overflow = count - len(visible)
+        saved_detail = f"Available: {' / '.join(visible)}"
+        if overflow:
+            saved_detail = f'{saved_detail} / +{overflow} more'
+
+    has_device_settings = isinstance(settings.get('device'), dict) and bool(settings.get('device'))
+    save_value = 'Ready' if has_device_settings else 'No device'
+    save_detail = (
+        'Save captures the currently exposed device settings for this headset.'
+        if has_device_settings
+        else 'Connect a supported headset before saving a profile.'
+    )
+
+    return {
+        'saved_value': saved_value,
+        'saved_detail': saved_detail,
+        'save_value': save_value,
+        'save_detail': save_detail,
+        'automation_value': 'Planned',
+        'automation_detail': 'Future app/game switching will build on active app routes and profile metadata.',
+    }
+
+
 def dashboard_settings_summary(settings: dict) -> dict[str, str]:
     return {
         'outputs': ready_output_endpoint_summary(settings),

@@ -19,6 +19,7 @@ from linux_arctis_manager.gui.view_models import (
     demo_status,
     device_capability_summary,
     mixer_levels,
+    profile_workflow_summary,
 )
 from linux_arctis_manager.i18n import I18n
 
@@ -57,6 +58,7 @@ class QMainApp(QBaseDesktopApp):
         self.status_widget = QStatusWidget(self.dashboard_status_card)
         self.dashboard_status_card.layout().addWidget(self.status_widget)
         self._refresh_profile_state({})
+        self._refresh_profile_overview({})
         self._refresh_device_capability_state({})
         self._refresh_routing_state({})
         self._refresh_mixer_settings({})
@@ -414,11 +416,29 @@ class QMainApp(QBaseDesktopApp):
         current.layout().addWidget(self.profile_status_label)
         layout.addWidget(current)
 
-        future = self._card('Profile Automation')
-        future.layout().addWidget(self._muted_label(
-            'Future work: switch profiles by game, app, or output route.'
-        ))
-        layout.addWidget(future)
+        overview_grid = QGridLayout()
+        overview_grid.setSpacing(14)
+        layout.addLayout(overview_grid)
+
+        self.profile_overview_value_labels: dict[str, QLabel] = {}
+        self.profile_overview_detail_labels: dict[str, QLabel] = {}
+        for index, (key, title) in enumerate([
+            ('saved', 'Saved Profiles'),
+            ('save', 'Save Readiness'),
+            ('automation', 'Profile Automation'),
+        ]):
+            card = self._card(title)
+
+            value_label = QLabel('Waiting')
+            value_label.setObjectName('endpointState')
+            card.layout().addWidget(value_label)
+            self.profile_overview_value_labels[key] = value_label
+
+            detail_label = self._muted_label('Waiting for profile metadata.')
+            card.layout().addWidget(detail_label)
+            self.profile_overview_detail_labels[key] = detail_label
+
+            overview_grid.addWidget(card, index // 2, index % 2)
 
         return page
 
@@ -588,6 +608,7 @@ class QMainApp(QBaseDesktopApp):
         )
         self._refresh_dashboard_settings(settings)
         self._refresh_profile_state(settings)
+        self._refresh_profile_overview(settings)
         self._refresh_device_capability_state(settings)
         self._refresh_mixer_settings(settings)
         self._refresh_routing_state(settings)
@@ -685,6 +706,9 @@ class QMainApp(QBaseDesktopApp):
 
     def _refresh_profile_state(self, settings: dict) -> None:
         profiles = settings.get('profiles', {})
+        if not isinstance(profiles, dict):
+            profiles = {}
+
         available = profiles.get('available', [])
         active = profiles.get('active', 'Default')
         has_device_settings = bool(settings.get('device'))
@@ -718,6 +742,16 @@ class QMainApp(QBaseDesktopApp):
             self.profile_status_label.setText('Profiles save and load the current device settings.')
         else:
             self.profile_status_label.setText('Connect a supported headset to save profiles.')
+
+    def _refresh_profile_overview(self, settings: dict) -> None:
+        summary = profile_workflow_summary(settings)
+        for key in ('saved', 'save', 'automation'):
+            value_label = self.profile_overview_value_labels.get(key)
+            detail_label = self.profile_overview_detail_labels.get(key)
+            if value_label:
+                value_label.setText(summary[f'{key}_value'])
+            if detail_label:
+                detail_label.setText(summary[f'{key}_detail'])
 
     def _on_save_profile_clicked(self) -> None:
         if not self.dbus_wrapper:

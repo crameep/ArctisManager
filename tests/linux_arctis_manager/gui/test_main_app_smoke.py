@@ -74,6 +74,10 @@ def test_profiles_page_updates_from_settings_metadata():
     assert window_app.save_profile_button.isEnabled()
     assert window_app.load_profile_button.isEnabled()
     assert window_app.profile_combo.currentText() == 'Late Night'
+    assert window_app.profile_overview_value_labels['saved'].text() == '2 saved profiles'
+    assert window_app.profile_overview_detail_labels['saved'].text() == 'Available: Default / Late Night'
+    assert window_app.profile_overview_value_labels['save'].text() == 'Ready'
+    assert window_app.profile_overview_value_labels['automation'].text() == 'Planned'
 
     window_app._on_save_profile_clicked()
     window_app._on_load_profile_clicked()

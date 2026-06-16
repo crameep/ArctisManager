@@ -7,6 +7,7 @@ from linux_arctis_manager.gui.view_models import (
     flatten_status_values,
     mixer_levels,
     output_endpoint_summary,
+    profile_workflow_summary,
     ready_output_endpoint_summary,
     safe_percentage,
 )
@@ -150,6 +151,34 @@ def test_device_capability_summary_handles_no_device():
     summary = device_capability_summary({})
 
     assert {capability['state'] for capability in summary} == {'No device'}
+
+
+def test_profile_workflow_summary_reports_saved_profiles_and_readiness():
+    assert profile_workflow_summary({
+        'device': {'mic_volume': 75},
+        'profiles': {
+            'available': ['Default', 'Late Night', 'Movie', 'Footsteps', 'Music'],
+            'active': 'Movie',
+        },
+    }) == {
+        'saved_value': '5 saved profiles',
+        'saved_detail': 'Available: Default / Late Night / Movie / Footsteps / +1 more',
+        'save_value': 'Ready',
+        'save_detail': 'Save captures the currently exposed device settings for this headset.',
+        'automation_value': 'Planned',
+        'automation_detail': 'Future app/game switching will build on active app routes and profile metadata.',
+    }
+
+
+def test_profile_workflow_summary_handles_no_saved_profiles():
+    assert profile_workflow_summary({}) == {
+        'saved_value': 'No saved profiles',
+        'saved_detail': 'Save the current device settings to start a per-device profile list.',
+        'save_value': 'No device',
+        'save_detail': 'Connect a supported headset before saving a profile.',
+        'automation_value': 'Planned',
+        'automation_detail': 'Future app/game switching will build on active app routes and profile metadata.',
+    }
 
 
 def test_mixer_levels_map_media_and_chat_mix_to_endpoint_groups():
