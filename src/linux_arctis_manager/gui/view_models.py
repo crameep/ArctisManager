@@ -639,6 +639,69 @@ def mixer_levels(status: StatusPayload | dict) -> dict[str, int]:
     return result
 
 
+def mixer_overview_summary(settings: dict) -> dict[str, str]:
+    endpoint_states = settings.get('audio_endpoints', [])
+    if not isinstance(endpoint_states, list):
+        endpoint_states = []
+
+    states_by_node = {
+        state.get('node_name'): state
+        for state in endpoint_states
+        if isinstance(state, dict) and isinstance(state.get('node_name'), str)
+    }
+
+    ready_labels = []
+    missing_labels = []
+    planned_labels = []
+    for endpoint in VIRTUAL_AUDIO_ENDPOINTS:
+        state = states_by_node.get(endpoint.node_name, {})
+        label = str(state.get('label') or endpoint.label) if isinstance(state, dict) else endpoint.label
+        implemented = endpoint.implemented
+        if isinstance(state, dict) and 'implemented' in state:
+            implemented = state.get('implemented') is True
+
+        if not implemented:
+            planned_labels.append(label)
+        elif isinstance(state, dict) and state.get('present') is True:
+            ready_labels.append(label)
+        elif endpoint_states:
+            missing_labels.append(label)
+
+    if endpoint_states:
+        channel_value = f'{len(ready_labels)} ready / {len(missing_labels)} missing / {len(planned_labels)} planned'
+        detail_parts = []
+        if ready_labels:
+            detail_parts.append(f"Ready: {' / '.join(ready_labels)}")
+        if missing_labels:
+            detail_parts.append(f"Missing: {' / '.join(missing_labels)}")
+        if planned_labels:
+            detail_parts.append(f"Planned: {' / '.join(planned_labels)}")
+        channel_detail = ' | '.join(detail_parts) if detail_parts else 'No endpoint state reported.'
+    else:
+        channel_value = 'Waiting'
+        channel_detail = output_endpoint_readiness_detail(settings)
+
+    media_labels = [
+        endpoint.label
+        for endpoint in VIRTUAL_AUDIO_ENDPOINTS
+        if endpoint.kind == 'sink' and endpoint.mix_group == 'media'
+    ]
+    chat_labels = [
+        endpoint.label
+        for endpoint in VIRTUAL_AUDIO_ENDPOINTS
+        if endpoint.kind == 'sink' and endpoint.mix_group == 'chat'
+    ]
+
+    return {
+        'channels_value': channel_value,
+        'channels_detail': channel_detail,
+        'media_value': ' / '.join(media_labels),
+        'media_detail': 'Media mix drives Game, Media, and Aux channels.',
+        'chat_value': ' / '.join(chat_labels),
+        'chat_detail': 'Chat mix drives voice chat separately when the headset reports ChatMix.',
+    }
+
+
 def chatmix_balance_summary(status: StatusPayload | dict) -> dict[str, str | int]:
     values = flatten_status_values(status)
     has_media_mix = 'media_mix' in values

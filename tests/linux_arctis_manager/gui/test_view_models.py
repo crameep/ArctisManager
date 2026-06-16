@@ -12,6 +12,7 @@ from linux_arctis_manager.gui.view_models import (
     demo_status,
     flatten_status_values,
     mixer_levels,
+    mixer_overview_summary,
     output_endpoint_readiness_detail,
     output_endpoint_summary,
     profile_app_context_summary,
@@ -427,6 +428,71 @@ def test_mixer_levels_map_media_and_chat_mix_to_endpoint_groups():
         'Arctis_Media': 35,
         'Arctis_Aux': 35,
         'Arctis_Microphone': 0,
+    }
+
+
+def test_mixer_overview_summary_reports_channel_state_and_mix_groups():
+    assert mixer_overview_summary({
+        'audio_endpoints': [
+            {
+                'node_name': 'Arctis_Game',
+                'label': 'Game',
+                'kind': 'sink',
+                'mix_group': 'media',
+                'implemented': True,
+                'present': True,
+            },
+            {
+                'node_name': 'Arctis_Chat',
+                'label': 'Chat',
+                'kind': 'sink',
+                'mix_group': 'chat',
+                'implemented': True,
+                'present': True,
+            },
+            {
+                'node_name': 'Arctis_Media',
+                'label': 'Media',
+                'kind': 'sink',
+                'mix_group': 'media',
+                'implemented': True,
+                'present': False,
+            },
+            {
+                'node_name': 'Arctis_Aux',
+                'label': 'Aux',
+                'kind': 'sink',
+                'mix_group': 'media',
+                'implemented': True,
+                'present': False,
+            },
+            {
+                'node_name': 'Arctis_Microphone',
+                'label': 'Microphone',
+                'kind': 'source',
+                'mix_group': 'microphone',
+                'implemented': False,
+                'present': False,
+            },
+        ],
+    }) == {
+        'channels_value': '2 ready / 2 missing / 1 planned',
+        'channels_detail': 'Ready: Game / Chat | Missing: Media / Aux | Planned: Microphone',
+        'media_value': 'Game / Media / Aux',
+        'media_detail': 'Media mix drives Game, Media, and Aux channels.',
+        'chat_value': 'Chat',
+        'chat_detail': 'Chat mix drives voice chat separately when the headset reports ChatMix.',
+    }
+
+
+def test_mixer_overview_summary_handles_missing_endpoint_metadata():
+    assert mixer_overview_summary({}) == {
+        'channels_value': 'Waiting',
+        'channels_detail': 'Catalog: Game / Chat / Media / Aux | Planned: Microphone',
+        'media_value': 'Game / Media / Aux',
+        'media_detail': 'Media mix drives Game, Media, and Aux channels.',
+        'chat_value': 'Chat',
+        'chat_detail': 'Chat mix drives voice chat separately when the headset reports ChatMix.',
     }
 
 

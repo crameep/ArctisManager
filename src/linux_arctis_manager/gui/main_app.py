@@ -24,6 +24,7 @@ from linux_arctis_manager.gui.view_models import (
     device_capability_summary,
     device_control_snapshot,
     mixer_levels,
+    mixer_overview_summary,
     profile_app_context_summary,
     profile_workflow_summary,
     routing_overview_summary,
@@ -71,6 +72,7 @@ class QMainApp(QBaseDesktopApp):
         self._refresh_device_control_snapshot({})
         self._refresh_routing_overview({})
         self._refresh_routing_state({})
+        self._refresh_mixer_overview({})
         self._refresh_mixer_settings({})
         self._refresh_application_routes({})
         self._refresh_dashboard_settings({})
@@ -271,6 +273,31 @@ class QMainApp(QBaseDesktopApp):
 
     def _build_mixer_page(self) -> QWidget:
         page, layout = self._scroll_page()
+
+        overview_grid = QGridLayout()
+        overview_grid.setSpacing(14)
+        layout.addLayout(overview_grid)
+
+        self.mixer_overview_value_labels: dict[str, QLabel] = {}
+        self.mixer_overview_detail_labels: dict[str, QLabel] = {}
+        for index, (key, title) in enumerate([
+            ('channels', 'Channel State'),
+            ('media', 'Media Mix Group'),
+            ('chat', 'Chat Mix Group'),
+        ]):
+            card = self._card(title)
+
+            value_label = QLabel()
+            value_label.setObjectName('endpointState')
+            self._set_state_label(value_label, 'Waiting')
+            card.layout().addWidget(value_label)
+            self.mixer_overview_value_labels[key] = value_label
+
+            detail_label = self._muted_label('Waiting for mixer metadata.')
+            card.layout().addWidget(detail_label)
+            self.mixer_overview_detail_labels[key] = detail_label
+
+            overview_grid.addWidget(card, index // 2, index % 2)
 
         self.mixer_sliders: dict[str, QSlider] = {}
         self.mixer_value_labels: dict[str, QLabel] = {}
@@ -703,14 +730,14 @@ class QMainApp(QBaseDesktopApp):
         normalized = text.lower()
         if 'demo' in normalized:
             return 'demo'
-        if 'planned' in normalized:
-            return 'planned'
         if 'optional' in normalized:
             return 'optional'
         if 'not exposed' in normalized:
             return 'neutral'
         if 'missing' in normalized:
-            return 'warning' if 'ready' in normalized else 'missing'
+            return 'warning' if 'ready' in normalized or 'planned' in normalized else 'missing'
+        if 'planned' in normalized:
+            return 'planned'
         if 'required' in normalized:
             return 'warning'
         if normalized.startswith('no ') or 'waiting' in normalized or 'unknown' in normalized:
@@ -912,7 +939,18 @@ class QMainApp(QBaseDesktopApp):
         if chat_slider:
             chat_slider.setValue(int(balance['chat_level']))
 
+    def _refresh_mixer_overview(self, settings: dict) -> None:
+        summary = mixer_overview_summary(settings)
+        for key in ('channels', 'media', 'chat'):
+            value_label = self.mixer_overview_value_labels.get(key)
+            detail_label = self.mixer_overview_detail_labels.get(key)
+            if value_label:
+                self._set_state_label(value_label, summary[f'{key}_value'])
+            if detail_label:
+                detail_label.setText(summary[f'{key}_detail'])
+
     def _refresh_mixer_settings(self, settings: dict) -> None:
+        self._refresh_mixer_overview(settings)
         endpoint_states = settings.get('audio_endpoints', [])
         if not isinstance(endpoint_states, list):
             endpoint_states = []

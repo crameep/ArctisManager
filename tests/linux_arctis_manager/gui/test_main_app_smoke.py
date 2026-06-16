@@ -38,6 +38,13 @@ def test_demo_main_window_opens_with_dashboard_and_mixer_content():
     app.processEvents()
 
     assert window_app.header_title.text() == 'Mixer'
+    assert window_app.mixer_overview_value_labels['channels'].text() == '3 ready / 1 missing / 1 planned'
+    assert window_app.mixer_overview_value_labels['channels'].property('state') == 'warning'
+    assert window_app.mixer_overview_detail_labels['channels'].text() == 'Ready: Game / Chat / Media | Missing: Aux | Planned: Microphone'
+    assert window_app.mixer_overview_value_labels['media'].text() == 'Game / Media / Aux'
+    assert window_app.mixer_overview_detail_labels['media'].text() == 'Media mix drives Game, Media, and Aux channels.'
+    assert window_app.mixer_overview_value_labels['chat'].text() == 'Chat'
+    assert window_app.mixer_overview_detail_labels['chat'].text() == 'Chat mix drives voice chat separately when the headset reports ChatMix.'
     assert window_app.mixer_sliders['Arctis_Game'].value() == 70
     assert window_app.mixer_value_labels['Arctis_Game'].text() == '70%'
     assert window_app.mixer_state_labels['Arctis_Game'].text() == 'Ready / Default'
