@@ -12,6 +12,7 @@ from linux_arctis_manager.gui.view_models import (
     demo_settings,
     demo_status,
     flatten_status_values,
+    header_context_summary,
     mixer_levels,
     mixer_overview_summary,
     output_endpoint_readiness_detail,
@@ -82,6 +83,24 @@ def test_dashboard_summary_handles_empty_status():
         'device': 'No device detected',
         'battery': 'Unknown',
         'microphone': 'Unknown',
+    }
+
+
+def test_header_context_summary_reports_persistent_page_context():
+    assert header_context_summary(demo_status(), demo_settings()) == {
+        'device': 'Arctis Nova 7 Wireless (demo)',
+        'battery': '87%',
+        'profile': 'Late Night',
+        'outputs': '3 ready: Game / Chat / Media',
+    }
+
+
+def test_header_context_summary_handles_empty_metadata():
+    assert header_context_summary({}, {}) == {
+        'device': 'No device detected',
+        'battery': 'Unknown',
+        'profile': 'Default',
+        'outputs': 'Game / Chat / Media / Aux',
     }
 
 

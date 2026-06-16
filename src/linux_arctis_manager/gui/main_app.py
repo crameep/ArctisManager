@@ -24,6 +24,7 @@ from linux_arctis_manager.gui.view_models import (
     demo_status,
     device_capability_summary,
     device_control_snapshot,
+    header_context_summary,
     mixer_levels,
     mixer_overview_summary,
     profile_app_context_summary,
@@ -66,6 +67,7 @@ class QMainApp(QBaseDesktopApp):
 
         self.status_widget = QStatusWidget(self.dashboard_status_card)
         self.dashboard_status_card.layout().addWidget(self.status_widget)
+        self._refresh_header_context()
         self._refresh_profile_state({})
         self._refresh_profile_overview({})
         self._refresh_profile_app_context({})
@@ -145,6 +147,26 @@ class QMainApp(QBaseDesktopApp):
         self.header_subtitle.setObjectName('pageSubtitle')
         self.main_panel_layout.addWidget(self.header_title)
         self.main_panel_layout.addWidget(self.header_subtitle)
+
+        self.header_context_values: dict[str, QLabel] = {}
+        context_bar = QWidget()
+        context_bar.setObjectName('headerContextBar')
+        context_layout = QHBoxLayout()
+        context_layout.setContentsMargins(0, 0, 0, 0)
+        context_layout.setSpacing(8)
+        context_bar.setLayout(context_layout)
+        for key, title, value in [
+            ('device', 'Device', 'No device detected'),
+            ('battery', 'Battery', 'Unknown'),
+            ('profile', 'Profile', 'Default'),
+            ('outputs', 'Outputs', 'Game / Chat / Media / Aux'),
+        ]:
+            chip = self._header_chip(title, value)
+            value_label = chip.findChild(QLabel, 'headerChipValue')
+            if value_label is not None:
+                self.header_context_values[key] = value_label
+            context_layout.addWidget(chip, 1)
+        self.main_panel_layout.addWidget(context_bar)
 
         self.stack = QStackedWidget()
         self.main_panel_layout.addWidget(self.stack, 1)
@@ -709,6 +731,25 @@ class QMainApp(QBaseDesktopApp):
         card.layout().addWidget(detail_label)
         return card
 
+    def _header_chip(self, title: str, value: str) -> QFrame:
+        chip = QFrame()
+        chip.setObjectName('headerChip')
+        layout = QVBoxLayout()
+        layout.setContentsMargins(10, 8, 10, 8)
+        layout.setSpacing(2)
+        chip.setLayout(layout)
+
+        title_label = QLabel(title)
+        title_label.setObjectName('headerChipTitle')
+        layout.addWidget(title_label)
+
+        value_label = QLabel(value)
+        value_label.setObjectName('headerChipValue')
+        value_label.setWordWrap(True)
+        layout.addWidget(value_label)
+
+        return chip
+
     def _readonly_meter(self, label: str) -> QWidget:
         meter = QWidget()
         meter_layout = QHBoxLayout()
@@ -919,6 +960,7 @@ class QMainApp(QBaseDesktopApp):
             self._set_state_label(self.setup_state_labels['dbus'], dbus_state)
 
     def _refresh_dashboard_status(self, status: dict) -> None:
+        self._refresh_header_context()
         for key, value in dashboard_summary(status, self.settings).items():
             if key in self.dashboard_cards:
                 self.dashboard_cards[key].setText(value)
@@ -926,6 +968,7 @@ class QMainApp(QBaseDesktopApp):
         self._refresh_dashboard_control_surface()
 
     def _refresh_dashboard_settings(self, settings: dict) -> None:
+        self._refresh_header_context()
         for key, value in dashboard_settings_summary(settings).items():
             if key in self.dashboard_cards:
                 self.dashboard_cards[key].setText(value)
@@ -936,6 +979,16 @@ class QMainApp(QBaseDesktopApp):
         for key, detail in dashboard_detail_summary(self.status, self.settings).items():
             if key in self.dashboard_card_details:
                 self.dashboard_card_details[key].setText(detail)
+
+    def _refresh_header_context(self) -> None:
+        for key, value in header_context_summary(self.status, self.settings).items():
+            value_label = self.header_context_values.get(key)
+            if value_label:
+                value_label.setText(value)
+                value_label.setProperty('state', self._state_tone(value))
+                value_label.style().unpolish(value_label)
+                value_label.style().polish(value_label)
+                value_label.update()
 
     def _refresh_dashboard_control_surface(self) -> None:
         for item in dashboard_control_surface_summary(self.status, self.settings):
@@ -1306,6 +1359,37 @@ class QMainApp(QBaseDesktopApp):
             }
             #pageSubtitle {
                 font-size: 13px;
+            }
+            #headerChip {
+                background: #121b24;
+                border: 1px solid #263241;
+                border-radius: 8px;
+            }
+            #headerChipTitle {
+                color: #91a4b7;
+                font-size: 11px;
+                font-weight: 700;
+                text-transform: uppercase;
+            }
+            #headerChipValue {
+                color: #f8fafc;
+                font-size: 13px;
+                font-weight: 700;
+            }
+            #headerChipValue[state="ready"] {
+                color: #a7f3d0;
+            }
+            #headerChipValue[state="warning"] {
+                color: #f8d775;
+            }
+            #headerChipValue[state="missing"] {
+                color: #ffc5cc;
+            }
+            #headerChipValue[state="planned"], #headerChipValue[state="demo"] {
+                color: #bfdbfe;
+            }
+            #headerChipValue[state="waiting"], #headerChipValue[state="neutral"] {
+                color: #dbe7f3;
             }
             #navButton {
                 background: transparent;

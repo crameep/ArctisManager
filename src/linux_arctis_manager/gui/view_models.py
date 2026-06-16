@@ -514,6 +514,17 @@ def dashboard_summary(status: StatusPayload | dict, settings: dict | None = None
     }
 
 
+def header_context_summary(status: StatusPayload | dict, settings: dict | None = None) -> dict[str, str]:
+    summary = dashboard_summary(status, settings)
+    settings = settings or {}
+    return {
+        'device': summary['device'],
+        'battery': summary['battery'],
+        'profile': active_profile_name(settings),
+        'outputs': ready_output_endpoint_summary(settings),
+    }
+
+
 def _friendly_setting_names(setting_names: list[str]) -> str:
     return ' / '.join(DEVICE_SETTING_LABELS.get(name, name.replace('_', ' ').title()) for name in setting_names)
 

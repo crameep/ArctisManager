@@ -23,6 +23,11 @@ def test_demo_main_window_opens_with_dashboard_and_mixer_content():
     assert window_app.main_window.minimumHeight() <= 640
     assert window_app.side_panel.width() == 220
     assert window_app.header_title.text() == 'Dashboard'
+    assert window_app.header_context_values['device'].text() == 'Arctis Nova 7 Wireless (demo)'
+    assert window_app.header_context_values['battery'].text() == '87%'
+    assert window_app.header_context_values['profile'].text() == 'Late Night'
+    assert window_app.header_context_values['outputs'].text() == '3 ready: Game / Chat / Media'
+    assert window_app.header_context_values['outputs'].property('state') == 'ready'
     assert window_app.dashboard_cards['device'].text() == 'Arctis Nova 7 Wireless (demo)'
     assert window_app.dashboard_cards['battery'].text() == '87%'
     assert window_app.dashboard_cards['microphone'].text() == 'unmuted'
@@ -47,6 +52,8 @@ def test_demo_main_window_opens_with_dashboard_and_mixer_content():
     app.processEvents()
 
     assert window_app.header_title.text() == 'Mixer'
+    assert window_app.header_context_values['device'].text() == 'Arctis Nova 7 Wireless (demo)'
+    assert window_app.header_context_values['profile'].text() == 'Late Night'
     assert window_app.mixer_overview_value_labels['channels'].text() == '3 ready / 1 missing / 1 planned'
     assert window_app.mixer_overview_value_labels['channels'].property('state') == 'warning'
     assert window_app.mixer_overview_detail_labels['channels'].text() == 'Ready: Game / Chat / Media | Missing: Aux | Planned: Microphone'
@@ -421,6 +428,11 @@ def test_dashboard_uses_settings_for_profile_and_output_readiness():
     })
     app.processEvents()
 
+    assert window_app.header_context_values['device'].text() == 'SteelSeries Arctis Nova 7'
+    assert window_app.header_context_values['battery'].text() == '91%'
+    assert window_app.header_context_values['profile'].text() == 'Movie Night'
+    assert window_app.header_context_values['outputs'].text() == '1 ready: Game'
+    assert window_app.header_context_values['outputs'].property('state') == 'ready'
     assert window_app.dashboard_cards['device'].text() == 'SteelSeries Arctis Nova 7'
     assert window_app.dashboard_cards['battery'].text() == '91%'
     assert window_app.dashboard_cards['outputs'].text() == '1 ready: Game'
