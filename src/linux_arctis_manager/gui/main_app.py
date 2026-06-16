@@ -24,6 +24,7 @@ from linux_arctis_manager.gui.view_models import (
     device_capability_summary,
     device_control_snapshot,
     mixer_levels,
+    profile_app_context_summary,
     profile_workflow_summary,
     routing_overview_summary,
 )
@@ -65,6 +66,7 @@ class QMainApp(QBaseDesktopApp):
         self.dashboard_status_card.layout().addWidget(self.status_widget)
         self._refresh_profile_state({})
         self._refresh_profile_overview({})
+        self._refresh_profile_app_context({})
         self._refresh_device_capability_state({})
         self._refresh_device_control_snapshot({})
         self._refresh_routing_overview({})
@@ -549,6 +551,16 @@ class QMainApp(QBaseDesktopApp):
 
             overview_grid.addWidget(card, index // 2, index % 2)
 
+        context = self._card('App Context')
+        self.profile_app_context_value_label = QLabel()
+        self.profile_app_context_value_label.setObjectName('endpointState')
+        self._set_state_label(self.profile_app_context_value_label, 'Waiting')
+        context.layout().addWidget(self.profile_app_context_value_label)
+
+        self.profile_app_context_detail_label = self._muted_label('Waiting for active app stream metadata.')
+        context.layout().addWidget(self.profile_app_context_detail_label)
+        layout.addWidget(context)
+
         return page
 
     def _build_settings_page(self) -> QWidget:
@@ -828,6 +840,7 @@ class QMainApp(QBaseDesktopApp):
         self._refresh_dashboard_settings(settings)
         self._refresh_profile_state(settings)
         self._refresh_profile_overview(settings)
+        self._refresh_profile_app_context(settings)
         self._refresh_device_capability_state(settings)
         self._refresh_device_control_snapshot(settings)
         self._refresh_routing_overview(settings)
@@ -1006,6 +1019,11 @@ class QMainApp(QBaseDesktopApp):
                 self._set_state_label(value_label, summary[f'{key}_value'])
             if detail_label:
                 detail_label.setText(summary[f'{key}_detail'])
+
+    def _refresh_profile_app_context(self, settings: dict) -> None:
+        summary = profile_app_context_summary(settings)
+        self._set_state_label(self.profile_app_context_value_label, summary['value'])
+        self.profile_app_context_detail_label.setText(summary['detail'])
 
     def _on_save_profile_clicked(self) -> None:
         if not self.dbus_wrapper:

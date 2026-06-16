@@ -117,6 +117,18 @@ def test_profiles_page_updates_from_settings_metadata():
             'available': ['Default', 'Late Night'],
             'active': 'Late Night',
         },
+        'application_routes': [
+            {
+                'stream_index': 55,
+                'application_name': 'Firefox',
+                'current_endpoint_label': 'Game',
+            },
+            {
+                'stream_index': 56,
+                'application_name': 'Discord',
+                'current_endpoint_label': 'Chat',
+            },
+        ],
     })
     app.processEvents()
 
@@ -132,6 +144,9 @@ def test_profiles_page_updates_from_settings_metadata():
     assert window_app.profile_overview_value_labels['save'].property('state') == 'ready'
     assert window_app.profile_overview_value_labels['automation'].text() == 'Planned'
     assert window_app.profile_overview_value_labels['automation'].property('state') == 'planned'
+    assert window_app.profile_app_context_value_label.text() == '2 active apps'
+    assert window_app.profile_app_context_value_label.property('state') == 'ready'
+    assert window_app.profile_app_context_detail_label.text() == 'Context: Firefox -> Game / Discord -> Chat'
 
     window_app._on_save_profile_clicked()
     window_app._on_load_profile_clicked()

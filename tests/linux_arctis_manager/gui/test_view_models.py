@@ -14,6 +14,7 @@ from linux_arctis_manager.gui.view_models import (
     mixer_levels,
     output_endpoint_readiness_detail,
     output_endpoint_summary,
+    profile_app_context_summary,
     profile_workflow_summary,
     ready_output_endpoint_summary,
     routing_overview_summary,
@@ -281,6 +282,33 @@ def test_application_route_rows_format_stream_metadata():
             'detail': 'firefox | PID 1234 | Stream 55',
         },
     ]
+
+
+def test_profile_app_context_summary_reports_active_routes():
+    assert profile_app_context_summary({
+        'application_routes': [
+            {
+                'stream_index': 55,
+                'application_name': 'Firefox',
+                'current_endpoint_label': 'Game',
+            },
+            {
+                'stream_index': 56,
+                'application_name': 'Discord',
+                'current_endpoint_label': 'Chat',
+            },
+        ],
+    }) == {
+        'value': '2 active apps',
+        'detail': 'Context: Firefox -> Game / Discord -> Chat',
+    }
+
+
+def test_profile_app_context_summary_handles_no_active_routes():
+    assert profile_app_context_summary({}) == {
+        'value': 'No active streams',
+        'detail': 'Open audio apps will appear here before app/game profile switching is implemented.',
+    }
 
 
 def test_device_capability_summary_groups_supported_controls():

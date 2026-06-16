@@ -342,6 +342,31 @@ def application_route_rows(settings: dict) -> list[dict[str, str | int]]:
     return rows
 
 
+def profile_app_context_summary(settings: dict) -> dict[str, str]:
+    route_rows = application_route_rows(settings)
+    if not route_rows:
+        return {
+            'value': 'No active streams',
+            'detail': 'Open audio apps will appear here before app/game profile switching is implemented.',
+        }
+
+    count = len(route_rows)
+    value = f'{count} active app' if count == 1 else f'{count} active apps'
+    visible = [
+        f"{route['title']} -> {route['current']}"
+        for route in route_rows[:3]
+    ]
+    overflow = count - len(visible)
+    detail = f"Context: {' / '.join(visible)}"
+    if overflow:
+        detail = f'{detail} / +{overflow} more'
+
+    return {
+        'value': value,
+        'detail': detail,
+    }
+
+
 def active_profile_name(settings: dict) -> str:
     profiles = settings.get('profiles', {})
     if not isinstance(profiles, dict):
