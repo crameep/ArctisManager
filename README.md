@@ -1,6 +1,8 @@
 # Linux Arctis Manager
 
-An open-source replacement for SteelSeries GG, to manage your Arctis headset on Linux!
+An open-source Linux headset manager for Arctis devices, with an original dashboard-first GUI for ChatMix, profiles, virtual audio routing, and device controls.
+
+Linux Arctis Manager is a community project. It is not affiliated with, endorsed by, or a visual clone of SteelSeries GG or Sonar; vendor product names are used only to describe compatible hardware and interoperability goals.
 
 [![GitHub Release](https://img.shields.io/github/v/release/crameep/ArctisManager?label=Latest%20Release&color=brightgreen&logo=github&logoColor=white)](https://github.com/crameep/ArctisManager/releases)
 [![AUR Version](https://img.shields.io/aur/version/linux-arctis-manager?label=AUR%20Package&logo=arch-linux&logoColor=white&color=1793d1)](https://aur.archlinux.org/packages/linux-arctis-manager)
@@ -12,7 +14,8 @@ An open-source replacement for SteelSeries GG, to manage your Arctis headset on 
 ## 🎚️ Key Points
 
 - Control ChatMix - enable and control balance between `Game`/`Media`/`Aux` and `Chat` audio streams
-- Modern dashboard-first GUI with mixer, routing, device, profile, and settings pages
+- Original dashboard-first GUI with mixer, routing, device, profile, and settings pages
+- Clearly mark planned or unsupported routing/device features instead of implying they work
 - Save and reload named per-device profiles from the GUI
 - View virtual audio endpoint state from the Routing page
 - Move active app audio streams to ready virtual outputs from the Routing page
@@ -273,7 +276,7 @@ sudo pacman -Rns linux-arctis-manager
 - Run the daemon: `uv run lam-daemon`
 - Run the CLI: `uv run lam-cli`
 - Run the GUI: `uv run lam-gui [--no-enforce-systemd]` (use this option to avoid force enabling the daemon, in case you're working on it)
-- Preview the redesigned GUI with sample status, routing, and profile metadata without D-Bus or headset hardware: `uv run lam-gui --demo`
+- Preview the original redesigned GUI with sample status, routing, profile, dashboard, and device-control metadata without D-Bus or headset hardware: `uv run lam-gui --demo`
 
 ### Documentation
 
