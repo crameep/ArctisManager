@@ -83,7 +83,11 @@ class QMainApp(QBaseDesktopApp):
             status = demo_status()
             self.status_widget.update_status(status)
             self.on_status_received(status)
-            self.service_status_label.setText('Demo mode - D-Bus disabled')
+            self._set_service_status(
+                'Demo mode - D-Bus disabled',
+                'Demo mode previews the redesigned GUI without touching the user service or headset.',
+                'Demo',
+            )
 
         self.destroyed.connect(self.sig_stop)
 
@@ -425,11 +429,48 @@ class QMainApp(QBaseDesktopApp):
 
         service = self._card('Service')
         self.service_status_label = QLabel('Waiting for D-Bus response')
+        self.service_status_label.setObjectName('setupState')
         service.layout().addWidget(self.service_status_label)
-        service.layout().addWidget(self._muted_label(
-            'Run lam-cli setup if udev rules or the user service are missing.'
-        ))
+        self.service_detail_label = self._muted_label(
+            'Start the user service with lam-cli setup --start-now if the GUI does not connect.'
+        )
+        service.layout().addWidget(self.service_detail_label)
         layout.addWidget(service)
+
+        setup = self._card('Setup Checklist')
+        self.setup_state_labels: dict[str, QLabel] = {}
+        self.setup_detail_labels: dict[str, QLabel] = {}
+        for key, title, state, detail in [
+            (
+                'dbus',
+                'D-Bus service',
+                'Waiting',
+                'The GUI reads headset status, settings, profiles, routes, and endpoint state from lam-daemon.',
+            ),
+            (
+                'udev',
+                'udev rules',
+                'Required',
+                'Run lam-cli setup after install so Linux grants the daemon access to supported USB/HID devices.',
+            ),
+            (
+                'audio',
+                'PulseAudio / PipeWire-pulse',
+                'Required',
+                'Virtual Game, Chat, Media, and Aux outputs use the PulseAudio compatibility API today.',
+            ),
+            (
+                'autostart',
+                'Tray autostart',
+                'Optional',
+                'Run lam-cli setup --systray-autostart --start-now if you want the tray helper at login.',
+            ),
+        ]:
+            row = self._setup_step_row(title, state, detail)
+            setup.layout().addWidget(row)
+            self.setup_state_labels[key] = row.findChild(QLabel, 'setupState')
+            self.setup_detail_labels[key] = row.findChild(QLabel, 'mutedText')
+        layout.addWidget(setup)
 
         about = self._card('About')
         about.layout().addWidget(QLabel('GPL-3.0 community headset manager for Linux.'))
@@ -491,6 +532,32 @@ class QMainApp(QBaseDesktopApp):
         button.setEnabled(False)
         return button
 
+    def _setup_step_row(self, title: str, state: str, detail: str) -> QWidget:
+        row = QWidget()
+        row_layout = QHBoxLayout()
+        row_layout.setContentsMargins(0, 0, 0, 0)
+        row_layout.setSpacing(12)
+        row.setLayout(row_layout)
+
+        copy = QWidget()
+        copy_layout = QVBoxLayout()
+        copy_layout.setContentsMargins(0, 0, 0, 0)
+        copy_layout.setSpacing(3)
+        copy.setLayout(copy_layout)
+
+        title_label = QLabel(title)
+        title_label.setObjectName('setupTitle')
+        copy_layout.addWidget(title_label)
+        copy_layout.addWidget(self._muted_label(detail))
+        row_layout.addWidget(copy, 1)
+
+        state_label = QLabel(state)
+        state_label.setObjectName('setupState')
+        state_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        row_layout.addWidget(state_label)
+
+        return row
+
     def switch_panel(self, panel: PanelName) -> None:
         self.stack.setCurrentWidget(self.pages[panel])
         title, subtitle = self.page_titles[panel]
@@ -514,7 +581,11 @@ class QMainApp(QBaseDesktopApp):
             return
 
         self.settings = settings
-        self.service_status_label.setText('D-Bus settings connected')
+        self._set_service_status(
+            'D-Bus settings connected',
+            'Settings metadata is flowing from lam-daemon.',
+            'Connected',
+        )
         self._refresh_dashboard_settings(settings)
         self._refresh_profile_state(settings)
         self._refresh_device_capability_state(settings)
@@ -527,9 +598,19 @@ class QMainApp(QBaseDesktopApp):
             return
 
         self.status = status
-        self.service_status_label.setText('D-Bus status connected')
+        self._set_service_status(
+            'D-Bus status connected',
+            'Live headset status is flowing from lam-daemon.',
+            'Connected',
+        )
         self._refresh_dashboard_status(status)
         self._refresh_mixer_status(status)
+
+    def _set_service_status(self, text: str, detail: str, dbus_state: str) -> None:
+        self.service_status_label.setText(text)
+        self.service_detail_label.setText(detail)
+        if 'dbus' in self.setup_state_labels:
+            self.setup_state_labels['dbus'].setText(dbus_state)
 
     def _refresh_dashboard_status(self, status: dict) -> None:
         for key, value in dashboard_summary(status).items():
@@ -894,6 +975,16 @@ class QMainApp(QBaseDesktopApp):
             }
             #endpointState {
                 color: #dbe7f3;
+                font-size: 13px;
+                font-weight: 700;
+            }
+            #setupTitle {
+                color: #f8fafc;
+                font-size: 13px;
+                font-weight: 700;
+            }
+            #setupState {
+                color: #ffffff;
                 font-size: 13px;
                 font-weight: 700;
             }

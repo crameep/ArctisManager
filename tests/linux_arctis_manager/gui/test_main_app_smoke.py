@@ -231,6 +231,34 @@ def test_device_page_updates_capability_overview_from_settings_metadata():
     window_app.sig_stop()
 
 
+def test_settings_page_shows_setup_guidance_and_service_state():
+    app = QApplication.instance() or QApplication([])
+    window_app = QMainApp(app, logging.CRITICAL, demo_mode=True)
+
+    window_app.switch_panel('settings')
+    app.processEvents()
+
+    assert window_app.service_status_label.text() == 'Demo mode - D-Bus disabled'
+    assert window_app.service_detail_label.text() == 'Demo mode previews the redesigned GUI without touching the user service or headset.'
+    assert window_app.setup_state_labels['dbus'].text() == 'Demo'
+    assert window_app.setup_state_labels['udev'].text() == 'Required'
+    assert window_app.setup_state_labels['audio'].text() == 'Required'
+    assert window_app.setup_state_labels['autostart'].text() == 'Optional'
+    assert 'lam-cli setup' in window_app.setup_detail_labels['udev'].text()
+    assert 'PulseAudio compatibility API' in window_app.setup_detail_labels['audio'].text()
+
+    window_app.on_settings_received({
+        'device': {'mic_volume': 80},
+        'settings_config': {'mic_volume': {'type': 'slider'}},
+    })
+    app.processEvents()
+
+    assert window_app.service_status_label.text() == 'D-Bus settings connected'
+    assert window_app.setup_state_labels['dbus'].text() == 'Connected'
+
+    window_app.sig_stop()
+
+
 def test_dashboard_uses_settings_for_profile_and_output_readiness():
     app = QApplication.instance() or QApplication([])
     window_app = QMainApp(app, logging.CRITICAL, demo_mode=True)
