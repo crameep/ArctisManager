@@ -180,6 +180,11 @@ def test_routing_page_updates_from_audio_endpoint_metadata():
     app.processEvents()
 
     assert window_app.routing_status_label.text() == '1 virtual outputs ready, 3 missing.'
+    assert window_app.routing_overview_value_labels['outputs'].text() == '1 ready / 3 missing'
+    assert window_app.routing_overview_detail_labels['outputs'].text() == 'Ready: Game'
+    assert window_app.routing_overview_value_labels['apps'].text() == '1 active stream'
+    assert window_app.routing_overview_detail_labels['apps'].text() == 'Streams: Firefox -> Game'
+    assert window_app.routing_overview_value_labels['planned'].text() == '1 planned endpoint'
     assert window_app.routing_state_labels['Arctis_Game'].text() == 'Ready / Default'
     assert window_app.routing_detail_labels['Arctis_Game'].text() == 'Virtual output present: Nova Game'
     assert window_app.routing_state_labels['Arctis_Chat'].text() == 'Missing'

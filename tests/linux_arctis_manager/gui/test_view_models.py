@@ -9,6 +9,7 @@ from linux_arctis_manager.gui.view_models import (
     output_endpoint_summary,
     profile_workflow_summary,
     ready_output_endpoint_summary,
+    routing_overview_summary,
     safe_percentage,
 )
 
@@ -117,6 +118,57 @@ def test_ready_output_endpoint_summary_reports_when_no_outputs_are_ready():
             },
         ],
     }) == 'No virtual outputs ready'
+
+
+def test_routing_overview_summary_reports_outputs_routes_and_planned_work():
+    summary = routing_overview_summary({
+        'audio_endpoints': [
+            {
+                'node_name': 'Arctis_Game',
+                'label': 'Game',
+                'kind': 'sink',
+                'implemented': True,
+                'present': True,
+            },
+            {
+                'node_name': 'Arctis_Chat',
+                'label': 'Chat',
+                'kind': 'sink',
+                'implemented': True,
+                'present': False,
+            },
+            {
+                'node_name': 'Arctis_Microphone',
+                'label': 'Microphone',
+                'kind': 'source',
+                'implemented': False,
+                'present': False,
+            },
+        ],
+        'application_routes': [
+            {
+                'stream_index': 55,
+                'application_name': 'Firefox',
+                'current_endpoint_label': 'Game',
+            },
+        ],
+    })
+
+    assert summary['outputs_value'] == '1 ready / 1 missing'
+    assert summary['outputs_detail'] == 'Ready: Game'
+    assert summary['apps_value'] == '1 active stream'
+    assert summary['apps_detail'] == 'Streams: Firefox -> Game'
+    assert summary['planned_value'] == '1 planned endpoint'
+    assert summary['planned_detail'] == 'Planned: Microphone source plus persistent app/game routing rules.'
+
+
+def test_routing_overview_summary_handles_empty_metadata():
+    summary = routing_overview_summary({})
+
+    assert summary['outputs_value'] == 'Waiting'
+    assert summary['outputs_detail'] == 'Catalog: Game / Chat / Media / Aux'
+    assert summary['apps_value'] == 'No active streams'
+    assert summary['planned_value'] == '1 planned endpoint'
 
 
 def test_device_capability_summary_groups_supported_controls():

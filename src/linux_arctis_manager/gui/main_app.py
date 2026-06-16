@@ -20,6 +20,7 @@ from linux_arctis_manager.gui.view_models import (
     device_capability_summary,
     mixer_levels,
     profile_workflow_summary,
+    routing_overview_summary,
 )
 from linux_arctis_manager.i18n import I18n
 
@@ -60,6 +61,7 @@ class QMainApp(QBaseDesktopApp):
         self._refresh_profile_state({})
         self._refresh_profile_overview({})
         self._refresh_device_capability_state({})
+        self._refresh_routing_overview({})
         self._refresh_routing_state({})
         self._refresh_mixer_settings({})
         self._refresh_application_routes({})
@@ -320,6 +322,30 @@ class QMainApp(QBaseDesktopApp):
 
     def _build_routing_page(self) -> QWidget:
         page, layout = self._scroll_page()
+
+        overview_grid = QGridLayout()
+        overview_grid.setSpacing(14)
+        layout.addLayout(overview_grid)
+
+        self.routing_overview_value_labels: dict[str, QLabel] = {}
+        self.routing_overview_detail_labels: dict[str, QLabel] = {}
+        for index, (key, title) in enumerate([
+            ('outputs', 'Virtual Outputs'),
+            ('apps', 'Active App Streams'),
+            ('planned', 'Planned Routing'),
+        ]):
+            card = self._card(title)
+
+            value_label = QLabel('Waiting')
+            value_label.setObjectName('endpointState')
+            card.layout().addWidget(value_label)
+            self.routing_overview_value_labels[key] = value_label
+
+            detail_label = self._muted_label('Waiting for routing metadata.')
+            card.layout().addWidget(detail_label)
+            self.routing_overview_detail_labels[key] = detail_label
+
+            overview_grid.addWidget(card, index // 2, index % 2)
 
         header = self._card('Endpoint State')
         self.routing_status_label = self._muted_label('Waiting for D-Bus endpoint state.')
@@ -610,6 +636,7 @@ class QMainApp(QBaseDesktopApp):
         self._refresh_profile_state(settings)
         self._refresh_profile_overview(settings)
         self._refresh_device_capability_state(settings)
+        self._refresh_routing_overview(settings)
         self._refresh_mixer_settings(settings)
         self._refresh_routing_state(settings)
         self._refresh_application_routes(settings)
@@ -839,6 +866,16 @@ class QMainApp(QBaseDesktopApp):
 
         self.routing_status_label.setText('Refresh requested.')
         self.dbus_wrapper.request_settings()
+
+    def _refresh_routing_overview(self, settings: dict) -> None:
+        summary = routing_overview_summary(settings)
+        for key in ('outputs', 'apps', 'planned'):
+            value_label = self.routing_overview_value_labels.get(key)
+            detail_label = self.routing_overview_detail_labels.get(key)
+            if value_label:
+                value_label.setText(summary[f'{key}_value'])
+            if detail_label:
+                detail_label.setText(summary[f'{key}_detail'])
 
     def _refresh_application_routes(self, settings: dict) -> None:
         routes = settings.get('application_routes', [])

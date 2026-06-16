@@ -148,6 +148,83 @@ def ready_output_endpoint_summary(settings: dict) -> str:
     return 'No virtual outputs ready'
 
 
+def routing_overview_summary(settings: dict) -> dict[str, str]:
+    endpoint_states = settings.get('audio_endpoints', [])
+    routes = settings.get('application_routes', [])
+    if not isinstance(endpoint_states, list):
+        endpoint_states = []
+    if not isinstance(routes, list):
+        routes = []
+
+    implemented_outputs = [
+        endpoint
+        for endpoint in endpoint_states
+        if isinstance(endpoint, dict)
+        and endpoint.get('kind') == 'sink'
+        and endpoint.get('implemented') is True
+    ]
+    ready_outputs = [
+        endpoint
+        for endpoint in implemented_outputs
+        if endpoint.get('present') is True
+    ]
+    missing_outputs = [
+        endpoint
+        for endpoint in implemented_outputs
+        if endpoint.get('present') is not True
+    ]
+
+    if implemented_outputs:
+        outputs_value = f'{len(ready_outputs)} ready / {len(missing_outputs)} missing'
+        ready_labels = [str(endpoint.get('label') or endpoint.get('node_name')) for endpoint in ready_outputs]
+        outputs_detail = f"Ready: {' / '.join(ready_labels)}" if ready_labels else 'No virtual outputs are ready yet.'
+    elif endpoint_states:
+        outputs_value = 'No outputs reported'
+        outputs_detail = 'The service returned endpoint metadata, but no implemented virtual outputs.'
+    else:
+        outputs_value = 'Waiting'
+        outputs_detail = f'Catalog: {output_endpoint_summary()}'
+
+    active_routes = [
+        route
+        for route in routes
+        if isinstance(route, dict) and isinstance(route.get('stream_index'), int)
+    ]
+    if active_routes:
+        route_count = len(active_routes)
+        routes_value = f'{route_count} active stream' if route_count == 1 else f'{route_count} active streams'
+        route_labels = []
+        for route in active_routes[:3]:
+            app_name = route.get('application_name') or route.get('name') or 'Unknown app'
+            current = route.get('current_endpoint_label') or route.get('sink_description') or route.get('sink_node_name') or 'current output'
+            route_labels.append(f'{app_name} -> {current}')
+        routes_detail = f"Streams: {' / '.join(route_labels)}"
+        overflow = route_count - len(route_labels)
+        if overflow:
+            routes_detail = f'{routes_detail} / +{overflow} more'
+    else:
+        routes_value = 'No active streams'
+        routes_detail = 'Open audio apps will appear here when PulseAudio/PipeWire-pulse reports active playback streams.'
+
+    planned_labels = [endpoint.label for endpoint in VIRTUAL_AUDIO_ENDPOINTS if not endpoint.implemented]
+    planned_count = len(planned_labels)
+    planned_value = f'{planned_count} planned endpoint' if planned_count == 1 else f'{planned_count} planned endpoints'
+    planned_detail = (
+        f"Planned: {' / '.join(planned_labels)} source plus persistent app/game routing rules."
+        if planned_labels
+        else 'Persistent app/game routing rules are planned for future native PipeWire/WirePlumber work.'
+    )
+
+    return {
+        'outputs_value': outputs_value,
+        'outputs_detail': outputs_detail,
+        'apps_value': routes_value,
+        'apps_detail': routes_detail,
+        'planned_value': planned_value,
+        'planned_detail': planned_detail,
+    }
+
+
 def active_profile_name(settings: dict) -> str:
     profiles = settings.get('profiles', {})
     if not isinstance(profiles, dict):
