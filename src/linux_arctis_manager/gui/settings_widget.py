@@ -27,17 +27,18 @@ class QSettingsWidget(QWidget):
 
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(10)
         self.setLayout(layout)
 
         title = I18n.get_instance().translate('ui', i18n_section_name)
         title_widget = QLabel(title)
-        title_font = title_widget.font()
-        title_font.setBold(True)
-        title_font.setPointSize(16)
-        title_widget.setFont(title_font)
+        title_widget.setObjectName('settingsSectionTitle')
         layout.addWidget(title_widget)
 
         self.main_layout = QVBoxLayout()
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self.main_layout.setSpacing(8)
         layout.addLayout(self.main_layout)
 
         self.title = I18n.get_instance().translate('ui', i18n_section_name)
@@ -67,7 +68,6 @@ class QSettingsWidget(QWidget):
                 self._settings_widgets[key].deleteLater()
                 del self._settings_widgets[key]
 
-            # Mapp all the settings
             for name, value in self.settings.items():
                 if not name in self._settings_widgets:
                     widget = self.get_widget(self.settings_config[name], value, self.on_settings_updated)
@@ -119,7 +119,10 @@ class QSettingsWidget(QWidget):
 
     def get_widget(self, config: ConfigSetting, value: bool|str|int, callback: Callable) -> QWidget|None:
         main_widget = QWidget()
+        main_widget.setObjectName('settingRow')
         main_layout = QHBoxLayout()
+        main_layout.setContentsMargins(10, 8, 10, 8)
+        main_layout.setSpacing(12)
         main_widget.setLayout(main_layout)
 
         widget: QWidget|None = None
@@ -133,9 +136,12 @@ class QSettingsWidget(QWidget):
         elif config.type == SettingType.SLIDER:
             widget = QWidget()
             widget_layout = QHBoxLayout()
+            widget_layout.setContentsMargins(0, 0, 0, 0)
+            widget_layout.setSpacing(10)
             widget.setLayout(widget_layout)
 
             slider = QSlider(Qt.Orientation.Horizontal)
+            slider.setObjectName('mixerSlider')
             slider.setMinimum(config.min)
             slider.setMaximum(config.max)
             slider.setSingleStep(config.step)
@@ -150,6 +156,7 @@ class QSettingsWidget(QWidget):
 
             slider_value = slider_value_callback(config)
             widget_value_label = QLabel(self._values_mapping_label(config, value))
+            widget_value_label.setObjectName('settingValue')
             widget_layout.addWidget(widget_value_label)
 
             slider.valueChanged.connect(lambda value: widget_value_label.setText(slider_value(value)))
@@ -175,8 +182,10 @@ class QSettingsWidget(QWidget):
             widget = QLabel(f'UNKNOWN TYPE: {config.type}')
 
         if widget:
-            main_layout.addWidget(QLabel(I18n.get_instance().translate('settings', config.name)))
-            main_layout.addWidget(widget)
+            label = QLabel(I18n.get_instance().translate('settings', config.name))
+            label.setObjectName('settingLabel')
+            label.setWordWrap(True)
+            main_layout.addWidget(label, 1)
+            main_layout.addWidget(widget, 2)
         
-        return main_widget if widget else None
         return main_widget if widget else None

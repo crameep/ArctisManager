@@ -1183,6 +1183,26 @@ class QMainApp(QBaseDesktopApp):
                 font-size: 13px;
                 font-weight: 700;
             }
+            #settingsSectionTitle, #statusGroupTitle {
+                color: #f8fafc;
+                font-size: 14px;
+                font-weight: 700;
+            }
+            #settingRow, #statusGroup {
+                background: #101820;
+                border: 1px solid #263241;
+                border-radius: 6px;
+            }
+            #settingLabel, #statusKey {
+                color: #dbe7f3;
+                font-size: 13px;
+                font-weight: 700;
+            }
+            #settingValue, #statusValue {
+                color: #ffffff;
+                font-size: 13px;
+                font-weight: 700;
+            }
             #endpointState {
                 color: #dbe7f3;
                 font-size: 13px;

@@ -1,5 +1,5 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from linux_arctis_manager.i18n import I18n
 
@@ -12,6 +12,8 @@ class QStatusWidget(QWidget):
 
         self.main_layout = QVBoxLayout()
         self.main_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self.main_layout.setSpacing(8)
         self.setLayout(self.main_layout)
     
     def clean_layout(self):
@@ -30,30 +32,43 @@ class QStatusWidget(QWidget):
         self.clean_layout()
         if not self.status:
             label = QLabel(I18n.get_instance().translate('ui', 'no_device_detected'))
-            label.font().setBold(True)
+            label.setObjectName('mutedText')
             self.main_layout.addWidget(label)
 
             return
 
-        index = 0
         for category, status_obj in self.status.items():
-            if index > 0:
-                line_separator = QWidget()
-                line_separator.setFixedHeight(2)
-                self.main_layout.addWidget(line_separator)
-            index += 1
+            group = QWidget()
+            group.setObjectName('statusGroup')
+            group_layout = QVBoxLayout()
+            group_layout.setContentsMargins(10, 8, 10, 8)
+            group_layout.setSpacing(6)
+            group.setLayout(group_layout)
 
             category_label = QLabel(I18n.get_instance().translate('status', category))
-            category_font = category_label.font()
-            category_font.setBold(True)
-            category_font.setPointSize(16)
-            category_label.setFont(category_font)
-            self.main_layout.addWidget(category_label)
+            category_label.setObjectName('statusGroupTitle')
+            group_layout.addWidget(category_label)
 
             for status, status_o in status_obj.items():
-                label = QLabel(
-                    f"{I18n.translate('status', status)}: "
+                row = QWidget()
+                row_layout = QHBoxLayout()
+                row_layout.setContentsMargins(0, 0, 0, 0)
+                row_layout.setSpacing(12)
+                row.setLayout(row_layout)
+
+                label = QLabel(I18n.translate('status', status))
+                label.setObjectName('statusKey')
+                label.setWordWrap(True)
+                row_layout.addWidget(label, 1)
+
+                value = QLabel(
                     f"{I18n.translate('status_values', status_o['value'])}"
                     f"{'%' if status_o['type'] == 'percentage' else ''}"
                 )
-                self.main_layout.addWidget(label)
+                value.setObjectName('statusValue')
+                value.setWordWrap(True)
+                row_layout.addWidget(value)
+
+                group_layout.addWidget(row)
+
+            self.main_layout.addWidget(group)

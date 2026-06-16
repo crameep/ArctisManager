@@ -6,7 +6,7 @@ import pytest
 
 pytest.importorskip('PySide6')
 
-from PySide6.QtWidgets import QApplication, QLabel
+from PySide6.QtWidgets import QApplication, QLabel, QWidget
 
 from linux_arctis_manager.gui.settings_widget import QSettingsWidget
 from linux_arctis_manager.gui.status_widget import QStatusWidget
@@ -30,8 +30,11 @@ def test_status_widget_renders_dbus_status_payload():
     labels = [label.text() for label in widget.findChildren(QLabel)]
 
     assert 'Headset' in labels
-    assert 'Headset Power Status: Online' in labels
-    assert 'Headset Battery Charge: 87%' in labels
+    assert 'Headset Power Status' in labels
+    assert 'Online' in labels
+    assert 'Headset Battery Charge' in labels
+    assert '87%' in labels
+    assert len(widget.findChildren(QWidget, 'statusGroup')) == 1
 
 
 def test_settings_widget_renders_dbus_settings_metadata():
@@ -69,3 +72,4 @@ def test_settings_widget_renders_dbus_settings_metadata():
     assert 'General' in labels
     assert 'Redirect Audio on Connect' in labels
     assert 'volume_preview' in labels
+    assert len(widget.findChildren(QWidget, 'settingRow')) == 2
