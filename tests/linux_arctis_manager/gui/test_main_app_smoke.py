@@ -36,14 +36,17 @@ def test_demo_main_window_opens_with_dashboard_and_mixer_content():
     assert window_app.mixer_sliders['Arctis_Game'].value() == 70
     assert window_app.mixer_value_labels['Arctis_Game'].text() == '70%'
     assert window_app.mixer_state_labels['Arctis_Game'].text() == 'Ready / Default'
+    assert window_app.mixer_state_labels['Arctis_Game'].property('state') == 'ready'
     assert window_app.mixer_state_labels['Arctis_Chat'].text() == 'Ready'
     assert window_app.mixer_state_labels['Arctis_Media'].text() == 'Ready'
     assert window_app.mixer_state_labels['Arctis_Aux'].text() == 'Missing'
+    assert window_app.mixer_state_labels['Arctis_Aux'].property('state') == 'missing'
     assert window_app.mixer_sliders['Arctis_Chat'].value() == 55
     assert window_app.mixer_value_labels['Arctis_Chat'].text() == '55%'
     assert window_app.mixer_sliders['Arctis_Microphone'].value() == 0
     assert window_app.mixer_value_labels['Arctis_Microphone'].text() == '0%'
     assert window_app.mixer_state_labels['Arctis_Microphone'].text() == 'Planned'
+    assert window_app.mixer_state_labels['Arctis_Microphone'].property('state') == 'planned'
     assert window_app.chatmix_balance_value_label.text() == 'Game/Media/Aux 70% / Chat 55%'
     assert window_app.chatmix_balance_detail_label.text() == 'Game, Media, and Aux follow media mix; Chat follows chat mix.'
     assert window_app.chatmix_media_balance_slider.findChild(QSlider).value() == 70
@@ -53,8 +56,11 @@ def test_demo_main_window_opens_with_dashboard_and_mixer_content():
     app.processEvents()
 
     assert window_app.routing_overview_value_labels['outputs'].text() == '3 ready / 1 missing'
+    assert window_app.routing_overview_value_labels['outputs'].property('state') == 'warning'
     assert window_app.routing_overview_value_labels['apps'].text() == '2 active streams'
+    assert window_app.routing_overview_value_labels['apps'].property('state') == 'ready'
     assert window_app.routing_state_labels['Arctis_Microphone'].text() == 'Planned'
+    assert window_app.routing_state_labels['Arctis_Microphone'].property('state') == 'planned'
     assert [label.text() for label in window_app.application_route_row_titles] == ['Firefox', 'Discord']
     assert not window_app.assign_route_button.isEnabled()
 
@@ -95,9 +101,12 @@ def test_profiles_page_updates_from_settings_metadata():
     assert window_app.load_profile_button.isEnabled()
     assert window_app.profile_combo.currentText() == 'Late Night'
     assert window_app.profile_overview_value_labels['saved'].text() == '2 saved profiles'
+    assert window_app.profile_overview_value_labels['saved'].property('state') == 'ready'
     assert window_app.profile_overview_detail_labels['saved'].text() == 'Available: Default / Late Night'
     assert window_app.profile_overview_value_labels['save'].text() == 'Ready'
+    assert window_app.profile_overview_value_labels['save'].property('state') == 'ready'
     assert window_app.profile_overview_value_labels['automation'].text() == 'Planned'
+    assert window_app.profile_overview_value_labels['automation'].property('state') == 'planned'
 
     window_app._on_save_profile_clicked()
     window_app._on_load_profile_clicked()
@@ -201,19 +210,27 @@ def test_routing_page_updates_from_audio_endpoint_metadata():
 
     assert window_app.routing_status_label.text() == '1 virtual outputs ready, 3 missing.'
     assert window_app.routing_overview_value_labels['outputs'].text() == '1 ready / 3 missing'
+    assert window_app.routing_overview_value_labels['outputs'].property('state') == 'warning'
     assert window_app.routing_overview_detail_labels['outputs'].text() == 'Ready: Game'
     assert window_app.routing_overview_value_labels['apps'].text() == '1 active stream'
+    assert window_app.routing_overview_value_labels['apps'].property('state') == 'ready'
     assert window_app.routing_overview_detail_labels['apps'].text() == 'Streams: Firefox -> Game'
     assert window_app.routing_overview_value_labels['planned'].text() == '1 planned endpoint'
+    assert window_app.routing_overview_value_labels['planned'].property('state') == 'planned'
     assert window_app.routing_state_labels['Arctis_Game'].text() == 'Ready / Default'
+    assert window_app.routing_state_labels['Arctis_Game'].property('state') == 'ready'
     assert window_app.routing_detail_labels['Arctis_Game'].text() == 'Virtual output present: Nova Game'
     assert window_app.routing_state_labels['Arctis_Chat'].text() == 'Missing'
+    assert window_app.routing_state_labels['Arctis_Chat'].property('state') == 'missing'
     assert window_app.routing_state_labels['Arctis_Microphone'].text() == 'Planned'
+    assert window_app.routing_state_labels['Arctis_Microphone'].property('state') == 'planned'
     assert window_app.mixer_state_labels['Arctis_Game'].text() == 'Ready / Default'
     assert window_app.mixer_detail_labels['Arctis_Game'].text() == 'Output present: Nova Game'
     assert window_app.mixer_state_labels['Arctis_Chat'].text() == 'Missing'
+    assert window_app.mixer_state_labels['Arctis_Chat'].property('state') == 'missing'
     assert window_app.mixer_detail_labels['Arctis_Chat'].text() == 'Virtual output not available yet.'
     assert window_app.mixer_state_labels['Arctis_Microphone'].text() == 'Planned'
+    assert window_app.mixer_state_labels['Arctis_Microphone'].property('state') == 'planned'
     assert window_app.route_app_stream_combo.currentData() == 55
     assert window_app.route_endpoint_combo.currentData() == 'Arctis_Game'
     assert window_app.assign_route_button.isEnabled()
@@ -254,12 +271,14 @@ def test_device_page_updates_capability_overview_from_settings_metadata():
     app.processEvents()
 
     assert window_app.device_capability_state_labels['microphone'].text() == 'Supported'
+    assert window_app.device_capability_state_labels['microphone'].property('state') == 'ready'
     assert window_app.device_capability_detail_labels['microphone'].text() == 'Controls: Mic Volume / Sidetone'
     assert window_app.device_capability_state_labels['noise_control'].text() == 'Supported'
     assert window_app.device_capability_detail_labels['noise_control'].text() == 'Controls: ANC'
     assert window_app.device_capability_state_labels['power_wireless'].text() == 'Supported'
     assert window_app.device_capability_detail_labels['power_wireless'].text() == 'Controls: Wireless Mode'
     assert window_app.device_capability_state_labels['audio_dac'].text() == 'Not exposed'
+    assert window_app.device_capability_state_labels['audio_dac'].property('state') == 'neutral'
 
     window_app.sig_stop()
 
@@ -272,11 +291,15 @@ def test_settings_page_shows_setup_guidance_and_service_state():
     app.processEvents()
 
     assert window_app.service_status_label.text() == 'Demo mode - D-Bus disabled'
+    assert window_app.service_status_label.property('state') == 'demo'
     assert window_app.service_detail_label.text() == 'Demo mode previews the redesigned GUI without touching the user service or headset.'
     assert window_app.setup_state_labels['dbus'].text() == 'Demo'
+    assert window_app.setup_state_labels['dbus'].property('state') == 'demo'
     assert window_app.setup_state_labels['udev'].text() == 'Required'
+    assert window_app.setup_state_labels['udev'].property('state') == 'warning'
     assert window_app.setup_state_labels['audio'].text() == 'Required'
     assert window_app.setup_state_labels['autostart'].text() == 'Optional'
+    assert window_app.setup_state_labels['autostart'].property('state') == 'optional'
     assert 'lam-cli setup' in window_app.setup_detail_labels['udev'].text()
     assert 'PulseAudio compatibility API' in window_app.setup_detail_labels['audio'].text()
 
@@ -287,6 +310,7 @@ def test_settings_page_shows_setup_guidance_and_service_state():
     app.processEvents()
 
     assert window_app.service_status_label.text() == 'Demo metadata loaded'
+    assert window_app.service_status_label.property('state') == 'demo'
     assert window_app.service_detail_label.text() == 'Sample settings, routes, and profiles are driving the preview.'
     assert window_app.setup_state_labels['dbus'].text() == 'Demo'
 

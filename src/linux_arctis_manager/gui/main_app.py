@@ -256,8 +256,9 @@ class QMainApp(QBaseDesktopApp):
             meter_row_layout.setSpacing(8)
             meter_row.setLayout(meter_row_layout)
 
-            state_label = QLabel('Planned' if not endpoint.implemented else 'Waiting')
+            state_label = QLabel()
             state_label.setObjectName('endpointState')
+            self._set_state_label(state_label, 'Planned' if not endpoint.implemented else 'Waiting')
             meter_row_layout.addWidget(state_label)
             self.mixer_state_labels[endpoint.node_name] = state_label
 
@@ -318,8 +319,9 @@ class QMainApp(QBaseDesktopApp):
         for index, capability in enumerate(device_capability_summary({})):
             card = self._card(capability['title'])
 
-            state_label = QLabel(capability['state'])
+            state_label = QLabel()
             state_label.setObjectName('endpointState')
+            self._set_state_label(state_label, capability['state'])
             card.layout().addWidget(state_label)
             self.device_capability_state_labels[capability['key']] = state_label
 
@@ -353,8 +355,9 @@ class QMainApp(QBaseDesktopApp):
         ]):
             card = self._card(title)
 
-            value_label = QLabel('Waiting')
+            value_label = QLabel()
             value_label.setObjectName('endpointState')
+            self._set_state_label(value_label, 'Waiting')
             card.layout().addWidget(value_label)
             self.routing_overview_value_labels[key] = value_label
 
@@ -421,8 +424,9 @@ class QMainApp(QBaseDesktopApp):
             card = self._card(endpoint.label)
             card.layout().addWidget(QLabel(endpoint.node_name))
 
-            state_label = QLabel('Planned' if not endpoint.implemented else 'Waiting')
+            state_label = QLabel()
             state_label.setObjectName('routeState')
+            self._set_state_label(state_label, 'Planned' if not endpoint.implemented else 'Waiting')
             card.layout().addWidget(state_label)
             self.routing_state_labels[endpoint.node_name] = state_label
 
@@ -488,8 +492,9 @@ class QMainApp(QBaseDesktopApp):
         ]):
             card = self._card(title)
 
-            value_label = QLabel('Waiting')
+            value_label = QLabel()
             value_label.setObjectName('endpointState')
+            self._set_state_label(value_label, 'Waiting')
             card.layout().addWidget(value_label)
             self.profile_overview_value_labels[key] = value_label
 
@@ -507,8 +512,9 @@ class QMainApp(QBaseDesktopApp):
         self.settings_page_content_layout = layout
 
         service = self._card('Service')
-        self.service_status_label = QLabel('Waiting for D-Bus response')
+        self.service_status_label = QLabel()
         self.service_status_label.setObjectName('setupState')
+        self._set_state_label(self.service_status_label, 'Waiting for D-Bus response')
         service.layout().addWidget(self.service_status_label)
         self.service_detail_label = self._muted_label(
             'Start the user service with lam-cli setup --start-now if the GUI does not connect.'
@@ -631,6 +637,40 @@ class QMainApp(QBaseDesktopApp):
         button.setEnabled(False)
         return button
 
+    @staticmethod
+    def _state_tone(text: str) -> str:
+        normalized = text.lower()
+        if 'demo' in normalized:
+            return 'demo'
+        if 'planned' in normalized:
+            return 'planned'
+        if 'optional' in normalized:
+            return 'optional'
+        if 'not exposed' in normalized:
+            return 'neutral'
+        if 'missing' in normalized:
+            return 'warning' if 'ready' in normalized else 'missing'
+        if 'required' in normalized:
+            return 'warning'
+        if normalized.startswith('no ') or 'waiting' in normalized or 'unknown' in normalized:
+            return 'waiting'
+        if (
+            'ready' in normalized
+            or 'connected' in normalized
+            or 'supported' in normalized
+            or 'active stream' in normalized
+            or 'saved profile' in normalized
+        ):
+            return 'ready'
+        return 'neutral'
+
+    def _set_state_label(self, label: QLabel, text: str) -> None:
+        label.setText(text)
+        label.setProperty('state', self._state_tone(text))
+        label.style().unpolish(label)
+        label.style().polish(label)
+        label.update()
+
     def _setup_step_row(self, title: str, state: str, detail: str) -> QWidget:
         row = QWidget()
         row_layout = QHBoxLayout()
@@ -650,9 +690,10 @@ class QMainApp(QBaseDesktopApp):
         copy_layout.addWidget(self._muted_label(detail))
         row_layout.addWidget(copy, 1)
 
-        state_label = QLabel(state)
+        state_label = QLabel()
         state_label.setObjectName('setupState')
         state_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        self._set_state_label(state_label, state)
         row_layout.addWidget(state_label)
 
         return row
@@ -765,10 +806,10 @@ class QMainApp(QBaseDesktopApp):
         self._refresh_mixer_status(status)
 
     def _set_service_status(self, text: str, detail: str, dbus_state: str) -> None:
-        self.service_status_label.setText(text)
+        self._set_state_label(self.service_status_label, text)
         self.service_detail_label.setText(detail)
         if 'dbus' in self.setup_state_labels:
-            self.setup_state_labels['dbus'].setText(dbus_state)
+            self._set_state_label(self.setup_state_labels['dbus'], dbus_state)
 
     def _refresh_dashboard_status(self, status: dict) -> None:
         for key, value in dashboard_summary(status, self.settings).items():
@@ -818,17 +859,17 @@ class QMainApp(QBaseDesktopApp):
                 continue
 
             if not endpoint.implemented:
-                state_label.setText('Planned')
+                self._set_state_label(state_label, 'Planned')
                 detail_label.setText('Reserved for future microphone routing')
                 continue
 
             state = states_by_node.get(endpoint.node_name)
             if state is None:
                 if self.dbus_wrapper:
-                    state_label.setText('Waiting')
+                    self._set_state_label(state_label, 'Waiting')
                     detail_label.setText('Waiting for endpoint state from the D-Bus service.')
                 else:
-                    state_label.setText('Demo')
+                    self._set_state_label(state_label, 'Demo')
                     detail_label.setText('Demo mix level from sample status.')
                 continue
 
@@ -836,10 +877,10 @@ class QMainApp(QBaseDesktopApp):
             is_default = bool(state.get('default'))
             description = state.get('description') or endpoint.node_name
             if present:
-                state_label.setText('Ready / Default' if is_default else 'Ready')
+                self._set_state_label(state_label, 'Ready / Default' if is_default else 'Ready')
                 detail_label.setText(f'Output present: {description}')
             else:
-                state_label.setText('Missing')
+                self._set_state_label(state_label, 'Missing')
                 detail_label.setText('Virtual output not available yet.')
 
     def _refresh_device_capability_state(self, settings: dict) -> None:
@@ -847,7 +888,7 @@ class QMainApp(QBaseDesktopApp):
             state_label = self.device_capability_state_labels.get(capability['key'])
             detail_label = self.device_capability_detail_labels.get(capability['key'])
             if state_label:
-                state_label.setText(capability['state'])
+                self._set_state_label(state_label, capability['state'])
             if detail_label:
                 detail_label.setText(capability['detail'])
 
@@ -896,7 +937,7 @@ class QMainApp(QBaseDesktopApp):
             value_label = self.profile_overview_value_labels.get(key)
             detail_label = self.profile_overview_detail_labels.get(key)
             if value_label:
-                value_label.setText(summary[f'{key}_value'])
+                self._set_state_label(value_label, summary[f'{key}_value'])
             if detail_label:
                 detail_label.setText(summary[f'{key}_detail'])
 
@@ -948,12 +989,12 @@ class QMainApp(QBaseDesktopApp):
                 continue
 
             if not endpoint.implemented:
-                state_label.setText('Planned')
+                self._set_state_label(state_label, 'Planned')
                 detail_label.setText('Input source reserved for future microphone routing.')
                 continue
 
             if not state:
-                state_label.setText('Unknown')
+                self._set_state_label(state_label, 'Unknown')
                 detail_label.setText('Waiting for endpoint state from the D-Bus service.')
                 continue
 
@@ -963,11 +1004,11 @@ class QMainApp(QBaseDesktopApp):
 
             if present:
                 ready_count += 1
-                state_label.setText('Ready / Default' if is_default else 'Ready')
+                self._set_state_label(state_label, 'Ready / Default' if is_default else 'Ready')
                 detail_label.setText(f'Virtual output present: {description}')
             else:
                 missing_count += 1
-                state_label.setText('Missing')
+                self._set_state_label(state_label, 'Missing')
                 detail_label.setText('Created when a supported headset and PulseAudio/PipeWire-pulse are available.')
 
         if endpoint_states:
@@ -993,7 +1034,7 @@ class QMainApp(QBaseDesktopApp):
             value_label = self.routing_overview_value_labels.get(key)
             detail_label = self.routing_overview_detail_labels.get(key)
             if value_label:
-                value_label.setText(summary[f'{key}_value'])
+                self._set_state_label(value_label, summary[f'{key}_value'])
             if detail_label:
                 detail_label.setText(summary[f'{key}_detail'])
 
@@ -1181,10 +1222,53 @@ class QMainApp(QBaseDesktopApp):
                 font-size: 15px;
                 font-weight: 700;
             }
-            #routeState {
-                color: #ffffff;
-                font-size: 18px;
+            #routeState, #endpointState, #setupState {
+                background: #1b2530;
+                border: 1px solid #34465a;
+                border-radius: 7px;
+                color: #dbe7f3;
+                font-size: 13px;
                 font-weight: 700;
+                padding: 4px 8px;
+            }
+            #routeState {
+                font-size: 14px;
+            }
+            #routeState[state="ready"], #endpointState[state="ready"], #setupState[state="ready"] {
+                background: #14362f;
+                border-color: #2f7d66;
+                color: #a7f3d0;
+            }
+            #routeState[state="warning"], #endpointState[state="warning"], #setupState[state="warning"] {
+                background: #3a2d12;
+                border-color: #8c6b24;
+                color: #f8d775;
+            }
+            #routeState[state="missing"], #endpointState[state="missing"], #setupState[state="missing"] {
+                background: #3a1d22;
+                border-color: #7f3540;
+                color: #ffc5cc;
+            }
+            #routeState[state="planned"], #endpointState[state="planned"], #setupState[state="planned"] {
+                background: #1d2f46;
+                border-color: #466b9a;
+                color: #bfdbfe;
+            }
+            #routeState[state="demo"], #endpointState[state="demo"], #setupState[state="demo"] {
+                background: #183342;
+                border-color: #4a809c;
+                color: #bae6fd;
+            }
+            #routeState[state="optional"], #endpointState[state="optional"], #setupState[state="optional"] {
+                background: #1d2d2a;
+                border-color: #456c62;
+                color: #c7f7e5;
+            }
+            #routeState[state="waiting"], #endpointState[state="waiting"], #setupState[state="waiting"],
+            #routeState[state="neutral"], #endpointState[state="neutral"], #setupState[state="neutral"] {
+                background: #18212b;
+                border-color: #2b3a49;
+                color: #aab8c7;
             }
             #appRouteRow {
                 background: #101820;
@@ -1221,18 +1305,8 @@ class QMainApp(QBaseDesktopApp):
                 font-size: 13px;
                 font-weight: 700;
             }
-            #endpointState {
-                color: #dbe7f3;
-                font-size: 13px;
-                font-weight: 700;
-            }
             #setupTitle {
                 color: #f8fafc;
-                font-size: 13px;
-                font-weight: 700;
-            }
-            #setupState {
-                color: #ffffff;
                 font-size: 13px;
                 font-weight: 700;
             }
