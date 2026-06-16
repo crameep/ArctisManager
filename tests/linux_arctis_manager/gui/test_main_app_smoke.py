@@ -72,6 +72,26 @@ def test_demo_main_window_opens_with_dashboard_and_mixer_content():
     window_app.sig_stop()
 
 
+def test_dashboard_quick_controls_navigate_to_core_pages():
+    app = QApplication.instance() or QApplication([])
+    window_app = QMainApp(app, logging.CRITICAL, demo_mode=True)
+
+    for panel_name, expected_title in [
+        ('mixer', 'Mixer'),
+        ('routing', 'Routing'),
+        ('profiles', 'Profiles'),
+        ('settings', 'Settings'),
+    ]:
+        window_app.switch_panel('dashboard')
+        window_app.dashboard_action_buttons[panel_name].click()
+        app.processEvents()
+
+        assert window_app.header_title.text() == expected_title
+        assert window_app.nav_buttons[panel_name].isChecked()
+
+    window_app.sig_stop()
+
+
 def test_profiles_page_updates_from_settings_metadata():
     app = QApplication.instance() or QApplication([])
     window_app = QMainApp(app, logging.CRITICAL, demo_mode=True)

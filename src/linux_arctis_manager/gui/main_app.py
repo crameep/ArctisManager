@@ -236,6 +236,30 @@ class QMainApp(QBaseDesktopApp):
                 self.dashboard_card_details[key] = detail_label
             summary_grid.addWidget(card, index // 2, index % 2)
 
+        quick_controls = self._card('Quick Controls')
+        quick_actions = QWidget()
+        quick_actions_layout = QHBoxLayout()
+        quick_actions_layout.setContentsMargins(0, 0, 0, 0)
+        quick_actions_layout.setSpacing(8)
+        quick_actions.setLayout(quick_actions_layout)
+
+        self.dashboard_action_buttons: dict[PanelName, QPushButton] = {}
+        for panel_name, text in [
+            ('mixer', 'Open Mixer'),
+            ('routing', 'Open Routing'),
+            ('profiles', 'Open Profiles'),
+            ('settings', 'Open Setup'),
+        ]:
+            button = QPushButton(text)
+            button.setObjectName('secondaryAction')
+            button.setCursor(Qt.CursorShape.PointingHandCursor)
+            button.clicked.connect(lambda _, name=panel_name: self.switch_panel(name))
+            quick_actions_layout.addWidget(button)
+            self.dashboard_action_buttons[panel_name] = button
+
+        quick_controls.layout().addWidget(quick_actions)
+        layout.addWidget(quick_controls)
+
         self.dashboard_status_card = self._card('Live Status')
         layout.addWidget(self.dashboard_status_card)
 
