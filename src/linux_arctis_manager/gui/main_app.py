@@ -719,6 +719,7 @@ class QMainApp(QBaseDesktopApp):
             'ready' in normalized
             or 'connected' in normalized
             or 'supported' in normalized
+            or 'active app' in normalized
             or 'active stream' in normalized
             or 'saved profile' in normalized
         ):
