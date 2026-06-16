@@ -28,6 +28,11 @@ def test_demo_main_window_opens_with_dashboard_and_mixer_content():
     assert window_app.dashboard_cards['microphone'].text() == 'unmuted'
     assert window_app.dashboard_cards['outputs'].text() == '3 ready: Game / Chat / Media'
     assert window_app.dashboard_cards['profile'].text() == 'Late Night'
+    assert window_app.dashboard_card_details['device'].text() == 'USB 1038:2202'
+    assert window_app.dashboard_card_details['battery'].text() == 'Power state: online'
+    assert window_app.dashboard_card_details['microphone'].text() == 'Mute state: unmuted'
+    assert window_app.dashboard_card_details['outputs'].text() == 'Ready: Game / Chat / Media | Missing: Aux | Planned: Microphone'
+    assert window_app.dashboard_card_details['profile'].text() == 'Saved: Default / Late Night / Footsteps'
 
     window_app.switch_panel('mixer')
     app.processEvents()
@@ -360,5 +365,10 @@ def test_dashboard_uses_settings_for_profile_and_output_readiness():
     assert window_app.dashboard_cards['battery'].text() == '91%'
     assert window_app.dashboard_cards['outputs'].text() == '1 ready: Game'
     assert window_app.dashboard_cards['profile'].text() == 'Movie Night'
+    assert window_app.dashboard_card_details['device'].text() == 'USB 1038:2202'
+    assert window_app.dashboard_card_details['battery'].text() == 'Power state: online'
+    assert window_app.dashboard_card_details['microphone'].text() == 'Waiting for microphone status.'
+    assert window_app.dashboard_card_details['outputs'].text() == 'Ready: Game | Missing: Chat'
+    assert window_app.dashboard_card_details['profile'].text() == 'Saved: Default / Movie Night'
 
     window_app.sig_stop()

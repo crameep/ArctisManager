@@ -3,6 +3,7 @@ from linux_arctis_manager.gui.view_models import (
     application_route_rows,
     chatmix_balance_summary,
     connected_device_name,
+    dashboard_detail_summary,
     dashboard_settings_summary,
     dashboard_summary,
     device_capability_summary,
@@ -10,6 +11,7 @@ from linux_arctis_manager.gui.view_models import (
     demo_status,
     flatten_status_values,
     mixer_levels,
+    output_endpoint_readiness_detail,
     output_endpoint_summary,
     profile_workflow_summary,
     ready_output_endpoint_summary,
@@ -128,10 +130,65 @@ def test_dashboard_settings_summary_reports_ready_outputs_and_active_profile():
 
 def test_dashboard_settings_summary_falls_back_to_catalog_and_default_profile():
     assert ready_output_endpoint_summary({}) == 'Game / Chat / Media / Aux'
+    assert output_endpoint_readiness_detail({}) == 'Catalog: Game / Chat / Media / Aux | Planned: Microphone'
     assert active_profile_name({}) == 'Default'
     assert dashboard_settings_summary({}) == {
         'outputs': 'Game / Chat / Media / Aux',
         'profile': 'Default',
+    }
+
+
+def test_dashboard_detail_summary_reports_identity_status_outputs_and_profiles():
+    settings = {
+        'device_info': {
+            'name': 'SteelSeries Arctis Nova 7',
+            'vendor_id': '1038',
+            'product_id': '2202',
+        },
+        'profiles': {
+            'available': ['Default', 'Footsteps', 'Movie'],
+            'active': 'Footsteps',
+        },
+        'audio_endpoints': [
+            {
+                'node_name': 'Arctis_Game',
+                'label': 'Game',
+                'kind': 'sink',
+                'implemented': True,
+                'present': True,
+            },
+            {
+                'node_name': 'Arctis_Chat',
+                'label': 'Chat',
+                'kind': 'sink',
+                'implemented': True,
+                'present': False,
+            },
+            {
+                'node_name': 'Arctis_Microphone',
+                'label': 'Microphone',
+                'kind': 'source',
+                'implemented': False,
+                'present': False,
+            },
+        ],
+    }
+    status = {
+        'headset': {
+            'headset_power_status': {'value': 'online', 'type': 'label'},
+            'headset_battery_charge': {'value': 91, 'type': 'percentage'},
+        },
+        'mic': {
+            'mic_status': {'value': 'muted', 'type': 'label'},
+        },
+    }
+
+    assert dashboard_detail_summary(status, settings) == {
+        'device': 'USB 1038:2202',
+        'battery': 'Power state: online',
+        'microphone': 'Mute state: muted',
+        'outputs': 'Ready: Game | Missing: Chat | Planned: Microphone',
+        'profile': 'Saved: Default / Footsteps / Movie',
     }
 
 

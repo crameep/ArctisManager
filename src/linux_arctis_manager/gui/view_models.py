@@ -148,6 +148,41 @@ def ready_output_endpoint_summary(settings: dict) -> str:
     return 'No virtual outputs ready'
 
 
+def output_endpoint_readiness_detail(settings: dict) -> str:
+    endpoint_states = settings.get('audio_endpoints', [])
+    if not isinstance(endpoint_states, list) or not endpoint_states:
+        planned_labels = [endpoint.label for endpoint in VIRTUAL_AUDIO_ENDPOINTS if not endpoint.implemented]
+        detail = f'Catalog: {output_endpoint_summary()}'
+        if planned_labels:
+            detail = f"{detail} | Planned: {' / '.join(planned_labels)}"
+        return detail
+
+    ready_labels = []
+    missing_labels = []
+    planned_labels = []
+    for endpoint in endpoint_states:
+        if not isinstance(endpoint, dict):
+            continue
+
+        label = str(endpoint.get('label') or endpoint.get('node_name') or 'Unknown')
+        if endpoint.get('implemented') is not True:
+            planned_labels.append(label)
+        elif endpoint.get('kind') == 'sink' and endpoint.get('present') is True:
+            ready_labels.append(label)
+        elif endpoint.get('kind') == 'sink':
+            missing_labels.append(label)
+
+    details = []
+    if ready_labels:
+        details.append(f"Ready: {' / '.join(ready_labels)}")
+    if missing_labels:
+        details.append(f"Missing: {' / '.join(missing_labels)}")
+    if planned_labels:
+        details.append(f"Planned: {' / '.join(planned_labels)}")
+
+    return ' | '.join(details) if details else 'No virtual endpoint metadata reported.'
+
+
 def routing_overview_summary(settings: dict) -> dict[str, str]:
     endpoint_states = settings.get('audio_endpoints', [])
     routes = settings.get('application_routes', [])
@@ -321,6 +356,54 @@ def connected_device_name(settings: dict, fallback: str = 'No device detected') 
     return name if isinstance(name, str) and name else fallback
 
 
+def connected_device_detail(settings: dict) -> str:
+    device_info = settings.get('device_info', {})
+    if not isinstance(device_info, dict):
+        return 'Waiting for matched USB/HID metadata.'
+
+    vendor_id = device_info.get('vendor_id')
+    product_id = device_info.get('product_id')
+    if isinstance(vendor_id, str) and vendor_id and isinstance(product_id, str) and product_id:
+        return f'USB {vendor_id}:{product_id}'
+
+    if isinstance(device_info.get('name'), str) and device_info.get('name'):
+        return 'Matched headset or DAC metadata.'
+
+    return 'Waiting for matched USB/HID metadata.'
+
+
+def battery_status_detail(status: StatusPayload | dict) -> str:
+    values = flatten_status_values(status)
+    power_state = first_status_value(values, ['headset_power_status', 'bluetooth_power_status'], '')
+    if power_state:
+        return f'Power state: {power_state}'
+    if status:
+        return 'Battery metadata received without a power state.'
+    return 'Waiting for headset battery status.'
+
+
+def microphone_status_detail(status: StatusPayload | dict) -> str:
+    values = flatten_status_values(status)
+    if 'mic_status' in values:
+        return f"Mute state: {values['mic_status']}"
+    if 'mic_volume' in values:
+        return f"Volume status: {values['mic_volume']}"
+    return 'Waiting for microphone status.'
+
+
+def active_profile_detail(settings: dict) -> str:
+    available = available_profile_names(settings)
+    if not available:
+        return 'Save a profile after device settings load.'
+
+    visible = available[:3]
+    overflow = len(available) - len(visible)
+    detail = f"Saved: {' / '.join(visible)}"
+    if overflow:
+        detail = f'{detail} / +{overflow} more'
+    return detail
+
+
 def dashboard_settings_summary(settings: dict) -> dict[str, str]:
     summary = {
         'outputs': ready_output_endpoint_summary(settings),
@@ -332,6 +415,17 @@ def dashboard_settings_summary(settings: dict) -> dict[str, str]:
         summary['device'] = device_name
 
     return summary
+
+
+def dashboard_detail_summary(status: StatusPayload | dict, settings: dict | None = None) -> dict[str, str]:
+    settings = settings or {}
+    return {
+        'device': connected_device_detail(settings),
+        'battery': battery_status_detail(status),
+        'microphone': microphone_status_detail(status),
+        'outputs': output_endpoint_readiness_detail(settings),
+        'profile': active_profile_detail(settings),
+    }
 
 
 def dashboard_summary(status: StatusPayload | dict, settings: dict | None = None) -> dict[str, str]:

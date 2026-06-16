@@ -16,6 +16,7 @@ from linux_arctis_manager.gui.ui_utils import get_icon_pixmap
 from linux_arctis_manager.gui.view_models import (
     application_route_rows,
     chatmix_balance_summary,
+    dashboard_detail_summary,
     dashboard_settings_summary,
     dashboard_summary,
     demo_settings,
@@ -218,6 +219,7 @@ class QMainApp(QBaseDesktopApp):
         layout.addLayout(summary_grid)
 
         self.dashboard_cards: dict[str, QLabel] = {}
+        self.dashboard_card_details: dict[str, QLabel] = {}
         for index, (key, title, value) in enumerate([
             ('device', 'Device', 'No device detected'),
             ('battery', 'Battery', 'Unknown'),
@@ -229,6 +231,9 @@ class QMainApp(QBaseDesktopApp):
             value_label = card.findChild(QLabel, 'summaryValue')
             if value_label is not None:
                 self.dashboard_cards[key] = value_label
+            detail_label = card.findChild(QLabel, 'summaryDetail')
+            if detail_label is not None:
+                self.dashboard_card_details[key] = detail_label
             summary_grid.addWidget(card, index // 2, index % 2)
 
         self.dashboard_status_card = self._card('Live Status')
@@ -603,6 +608,10 @@ class QMainApp(QBaseDesktopApp):
         value_label.setObjectName('summaryValue')
         value_label.setWordWrap(True)
         card.layout().addWidget(value_label)
+
+        detail_label = self._muted_label('Waiting for metadata.')
+        detail_label.setObjectName('summaryDetail')
+        card.layout().addWidget(detail_label)
         return card
 
     def _readonly_meter(self, label: str) -> QWidget:
@@ -815,11 +824,18 @@ class QMainApp(QBaseDesktopApp):
         for key, value in dashboard_summary(status, self.settings).items():
             if key in self.dashboard_cards:
                 self.dashboard_cards[key].setText(value)
+        self._refresh_dashboard_details()
 
     def _refresh_dashboard_settings(self, settings: dict) -> None:
         for key, value in dashboard_settings_summary(settings).items():
             if key in self.dashboard_cards:
                 self.dashboard_cards[key].setText(value)
+        self._refresh_dashboard_details()
+
+    def _refresh_dashboard_details(self) -> None:
+        for key, detail in dashboard_detail_summary(self.status, self.settings).items():
+            if key in self.dashboard_card_details:
+                self.dashboard_card_details[key].setText(detail)
 
     def _refresh_mixer_status(self, status: dict) -> None:
         for node_name, level in mixer_levels(status).items():
@@ -1319,6 +1335,10 @@ class QMainApp(QBaseDesktopApp):
                 color: #ffffff;
                 font-size: 21px;
                 font-weight: 700;
+            }
+            #summaryDetail {
+                color: #91a4b7;
+                font-size: 12px;
             }
             QLabel {
                 color: #dbe7f3;
