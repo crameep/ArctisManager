@@ -283,8 +283,9 @@ def test_settings_page_shows_setup_guidance_and_service_state():
     })
     app.processEvents()
 
-    assert window_app.service_status_label.text() == 'D-Bus settings connected'
-    assert window_app.setup_state_labels['dbus'].text() == 'Connected'
+    assert window_app.service_status_label.text() == 'Demo metadata loaded'
+    assert window_app.service_detail_label.text() == 'Sample settings, routes, and profiles are driving the preview.'
+    assert window_app.setup_state_labels['dbus'].text() == 'Demo'
 
     window_app.sig_stop()
 

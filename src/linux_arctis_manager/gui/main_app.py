@@ -81,7 +81,9 @@ class QMainApp(QBaseDesktopApp):
             self.dbus_wrapper.sig_settings.connect(self.general_settings_widget.update_settings)
             self.dbus_wrapper.sig_settings.connect(self.device_settings_widget.update_settings)
         else:
-            self.device_settings_card.layout().addWidget(self._muted_label('Demo mode uses sample status only. D-Bus device controls are hidden.'))
+            self.device_settings_card.layout().addWidget(self._muted_label(
+                'Demo mode uses sample metadata for the overview. Live device controls need the D-Bus service.'
+            ))
 
         self.switch_panel('dashboard')
         if self.dbus_wrapper:
@@ -721,11 +723,18 @@ class QMainApp(QBaseDesktopApp):
             return
 
         self.settings = settings
-        self._set_service_status(
-            'D-Bus settings connected',
-            'Settings metadata is flowing from lam-daemon.',
-            'Connected',
-        )
+        if self.demo_mode:
+            self._set_service_status(
+                'Demo metadata loaded',
+                'Sample settings, routes, and profiles are driving the preview.',
+                'Demo',
+            )
+        else:
+            self._set_service_status(
+                'D-Bus settings connected',
+                'Settings metadata is flowing from lam-daemon.',
+                'Connected',
+            )
         self._refresh_dashboard_settings(settings)
         self._refresh_profile_state(settings)
         self._refresh_profile_overview(settings)
@@ -740,11 +749,18 @@ class QMainApp(QBaseDesktopApp):
             return
 
         self.status = status
-        self._set_service_status(
-            'D-Bus status connected',
-            'Live headset status is flowing from lam-daemon.',
-            'Connected',
-        )
+        if self.demo_mode:
+            self._set_service_status(
+                'Demo status loaded',
+                'Sample headset status is driving the preview.',
+                'Demo',
+            )
+        else:
+            self._set_service_status(
+                'D-Bus status connected',
+                'Live headset status is flowing from lam-daemon.',
+                'Connected',
+            )
         self._refresh_dashboard_status(status)
         self._refresh_mixer_status(status)
 
