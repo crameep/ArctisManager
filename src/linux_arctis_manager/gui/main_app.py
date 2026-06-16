@@ -18,6 +18,7 @@ from linux_arctis_manager.gui.view_models import (
     chatmix_balance_summary,
     dashboard_settings_summary,
     dashboard_summary,
+    demo_settings,
     demo_status,
     device_capability_summary,
     mixer_levels,
@@ -86,6 +87,7 @@ class QMainApp(QBaseDesktopApp):
         if self.dbus_wrapper:
             self.dbus_wrapper.start()
         else:
+            self.on_settings_received(demo_settings())
             status = demo_status()
             self.status_widget.update_status(status)
             self.on_status_received(status)

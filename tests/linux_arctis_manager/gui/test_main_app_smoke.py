@@ -20,10 +20,11 @@ def test_demo_main_window_opens_with_dashboard_and_mixer_content():
     app.processEvents()
 
     assert window_app.header_title.text() == 'Dashboard'
-    assert window_app.dashboard_cards['device'].text() == 'online'
+    assert window_app.dashboard_cards['device'].text() == 'Arctis Nova 7 Wireless (demo)'
     assert window_app.dashboard_cards['battery'].text() == '87%'
     assert window_app.dashboard_cards['microphone'].text() == 'unmuted'
-    assert window_app.dashboard_cards['outputs'].text() == 'Game / Chat / Media / Aux'
+    assert window_app.dashboard_cards['outputs'].text() == '3 ready: Game / Chat / Media'
+    assert window_app.dashboard_cards['profile'].text() == 'Late Night'
 
     window_app.switch_panel('mixer')
     app.processEvents()
@@ -31,7 +32,10 @@ def test_demo_main_window_opens_with_dashboard_and_mixer_content():
     assert window_app.header_title.text() == 'Mixer'
     assert window_app.mixer_sliders['Arctis_Game'].value() == 70
     assert window_app.mixer_value_labels['Arctis_Game'].text() == '70%'
-    assert window_app.mixer_state_labels['Arctis_Game'].text() == 'Demo'
+    assert window_app.mixer_state_labels['Arctis_Game'].text() == 'Ready / Default'
+    assert window_app.mixer_state_labels['Arctis_Chat'].text() == 'Ready'
+    assert window_app.mixer_state_labels['Arctis_Media'].text() == 'Ready'
+    assert window_app.mixer_state_labels['Arctis_Aux'].text() == 'Missing'
     assert window_app.mixer_sliders['Arctis_Chat'].value() == 55
     assert window_app.mixer_value_labels['Arctis_Chat'].text() == '55%'
     assert window_app.mixer_sliders['Arctis_Microphone'].value() == 0
@@ -41,6 +45,15 @@ def test_demo_main_window_opens_with_dashboard_and_mixer_content():
     assert window_app.chatmix_balance_detail_label.text() == 'Game, Media, and Aux follow media mix; Chat follows chat mix.'
     assert window_app.chatmix_media_balance_slider.findChild(QSlider).value() == 70
     assert window_app.chatmix_chat_balance_slider.findChild(QSlider).value() == 55
+
+    window_app.switch_panel('routing')
+    app.processEvents()
+
+    assert window_app.routing_overview_value_labels['outputs'].text() == '3 ready / 1 missing'
+    assert window_app.routing_overview_value_labels['apps'].text() == '2 active streams'
+    assert window_app.routing_state_labels['Arctis_Microphone'].text() == 'Planned'
+    assert [label.text() for label in window_app.application_route_row_titles] == ['Firefox', 'Discord']
+    assert not window_app.assign_route_button.isEnabled()
 
     window_app.sig_stop()
 

@@ -273,7 +273,7 @@ sudo pacman -Rns linux-arctis-manager
 - Run the daemon: `uv run lam-daemon`
 - Run the CLI: `uv run lam-cli`
 - Run the GUI: `uv run lam-gui [--no-enforce-systemd]` (use this option to avoid force enabling the daemon, in case you're working on it)
-- Preview the redesigned GUI without D-Bus or headset hardware: `uv run lam-gui --demo`
+- Preview the redesigned GUI with sample status, routing, and profile metadata without D-Bus or headset hardware: `uv run lam-gui --demo`
 
 ### Documentation
 

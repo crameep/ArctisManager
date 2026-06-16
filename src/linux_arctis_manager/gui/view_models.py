@@ -447,3 +447,78 @@ def demo_status() -> StatusPayload:
             'chat_mix': {'value': 55, 'type': 'percentage'},
         },
     }
+
+
+def demo_settings() -> dict:
+    endpoint_descriptions = {
+        'Arctis_Game': ('Demo Game', True, True),
+        'Arctis_Chat': ('Demo Chat', True, False),
+        'Arctis_Media': ('Demo Media', True, False),
+        'Arctis_Aux': ('Demo Aux', False, False),
+        'Arctis_Microphone': ('Demo Microphone', False, False),
+    }
+
+    return {
+        'general': {},
+        'device': {
+            'mic_volume': 82,
+            'mic_side_tone': 2,
+            'noise_cancelling': 1,
+            'transparent_noise_cancelling_level': 4,
+            'wireless_mode': 0,
+            'auto_off_time_minutes': 30,
+            'station_volume': 60,
+            'gain': 1,
+        },
+        'device_info': {
+            'name': 'Arctis Nova 7 Wireless (demo)',
+            'vendor_id': '1038',
+            'product_id': '2202',
+        },
+        'profiles': {
+            'available': ['Default', 'Late Night', 'Footsteps'],
+            'active': 'Late Night',
+        },
+        'audio_endpoints': [
+            {
+                'node_name': endpoint.node_name,
+                'label': endpoint.label,
+                'kind': endpoint.kind,
+                'mix_group': endpoint.mix_group,
+                'implemented': endpoint.implemented,
+                'present': endpoint_descriptions[endpoint.node_name][1],
+                'default': endpoint_descriptions[endpoint.node_name][2],
+                'description': endpoint_descriptions[endpoint.node_name][0],
+            }
+            for endpoint in VIRTUAL_AUDIO_ENDPOINTS
+        ],
+        'application_routes': [
+            {
+                'stream_index': 55,
+                'name': 'Firefox',
+                'application_name': 'Firefox',
+                'process_binary': 'firefox',
+                'process_id': '1234',
+                'sink_index': 1,
+                'sink_node_name': 'Arctis_Game',
+                'sink_description': 'Demo Game',
+                'current_endpoint_node_name': 'Arctis_Game',
+                'current_endpoint_label': 'Game',
+                'routable': True,
+            },
+            {
+                'stream_index': 56,
+                'name': 'Discord',
+                'application_name': 'Discord',
+                'process_binary': 'Discord',
+                'process_id': '5678',
+                'sink_index': 2,
+                'sink_node_name': 'Arctis_Chat',
+                'sink_description': 'Demo Chat',
+                'current_endpoint_node_name': 'Arctis_Chat',
+                'current_endpoint_label': 'Chat',
+                'routable': True,
+            },
+        ],
+        'settings_config': {},
+    }

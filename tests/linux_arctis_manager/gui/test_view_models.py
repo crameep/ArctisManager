@@ -6,6 +6,7 @@ from linux_arctis_manager.gui.view_models import (
     dashboard_settings_summary,
     dashboard_summary,
     device_capability_summary,
+    demo_settings,
     demo_status,
     flatten_status_values,
     mixer_levels,
@@ -346,3 +347,22 @@ def test_demo_status_drives_dashboard_and_mixer_models():
     assert summary['microphone'] == 'unmuted'
     assert levels['Arctis_Game'] == 70
     assert levels['Arctis_Chat'] == 55
+
+
+def test_demo_settings_drives_dashboard_routing_and_profiles():
+    settings = demo_settings()
+
+    assert dashboard_settings_summary(settings) == {
+        'device': 'Arctis Nova 7 Wireless (demo)',
+        'outputs': '3 ready: Game / Chat / Media',
+        'profile': 'Late Night',
+    }
+    assert routing_overview_summary(settings)['outputs_value'] == '3 ready / 1 missing'
+    assert routing_overview_summary(settings)['apps_value'] == '2 active streams'
+    assert profile_workflow_summary(settings)['saved_value'] == '3 saved profiles'
+    assert application_route_rows(settings)[0] == {
+        'stream_index': 55,
+        'title': 'Firefox',
+        'current': 'Game',
+        'detail': 'firefox | PID 1234 | Stream 55',
+    }
