@@ -30,8 +30,13 @@ def test_demo_main_window_opens_with_dashboard_and_mixer_content():
 
     assert window_app.header_title.text() == 'Mixer'
     assert window_app.mixer_sliders['Arctis_Game'].value() == 70
+    assert window_app.mixer_value_labels['Arctis_Game'].text() == '70%'
+    assert window_app.mixer_state_labels['Arctis_Game'].text() == 'Demo'
     assert window_app.mixer_sliders['Arctis_Chat'].value() == 55
+    assert window_app.mixer_value_labels['Arctis_Chat'].text() == '55%'
     assert window_app.mixer_sliders['Arctis_Microphone'].value() == 0
+    assert window_app.mixer_value_labels['Arctis_Microphone'].text() == '0%'
+    assert window_app.mixer_state_labels['Arctis_Microphone'].text() == 'Planned'
 
     window_app.sig_stop()
 
@@ -175,6 +180,11 @@ def test_routing_page_updates_from_audio_endpoint_metadata():
     assert window_app.routing_detail_labels['Arctis_Game'].text() == 'Virtual output present: Nova Game'
     assert window_app.routing_state_labels['Arctis_Chat'].text() == 'Missing'
     assert window_app.routing_state_labels['Arctis_Microphone'].text() == 'Planned'
+    assert window_app.mixer_state_labels['Arctis_Game'].text() == 'Ready / Default'
+    assert window_app.mixer_detail_labels['Arctis_Game'].text() == 'Output present: Nova Game'
+    assert window_app.mixer_state_labels['Arctis_Chat'].text() == 'Missing'
+    assert window_app.mixer_detail_labels['Arctis_Chat'].text() == 'Virtual output not available yet.'
+    assert window_app.mixer_state_labels['Arctis_Microphone'].text() == 'Planned'
     assert window_app.route_app_stream_combo.currentData() == 55
     assert window_app.route_endpoint_combo.currentData() == 'Arctis_Game'
     assert window_app.assign_route_button.isEnabled()

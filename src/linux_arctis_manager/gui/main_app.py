@@ -57,6 +57,7 @@ class QMainApp(QBaseDesktopApp):
         self.dashboard_status_card.layout().addWidget(self.status_widget)
         self._refresh_profile_state({})
         self._refresh_routing_state({})
+        self._refresh_mixer_settings({})
         self._refresh_application_routes({})
         self._refresh_dashboard_settings({})
 
@@ -223,14 +224,36 @@ class QMainApp(QBaseDesktopApp):
         page, layout = self._scroll_page()
 
         self.mixer_sliders: dict[str, QSlider] = {}
+        self.mixer_value_labels: dict[str, QLabel] = {}
+        self.mixer_state_labels: dict[str, QLabel] = {}
+        self.mixer_detail_labels: dict[str, QLabel] = {}
         endpoint_grid = QGridLayout()
         endpoint_grid.setSpacing(14)
         layout.addLayout(endpoint_grid)
 
         for index, endpoint in enumerate(VIRTUAL_AUDIO_ENDPOINTS):
             card = self._card(endpoint.label)
-            status = 'Planned' if not endpoint.implemented else ('Input source' if endpoint.kind == 'source' else 'Virtual output')
-            card.layout().addWidget(self._muted_label(status))
+
+            meter_row = QWidget()
+            meter_row_layout = QHBoxLayout()
+            meter_row_layout.setContentsMargins(0, 0, 0, 0)
+            meter_row_layout.setSpacing(8)
+            meter_row.setLayout(meter_row_layout)
+
+            state_label = QLabel('Planned' if not endpoint.implemented else 'Waiting')
+            state_label.setObjectName('endpointState')
+            meter_row_layout.addWidget(state_label)
+            self.mixer_state_labels[endpoint.node_name] = state_label
+
+            meter_row_layout.addStretch(1)
+
+            value_label = QLabel('0%' if not endpoint.implemented else '100%')
+            value_label.setObjectName('mixerValue')
+            value_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+            meter_row_layout.addWidget(value_label)
+            self.mixer_value_labels[endpoint.node_name] = value_label
+
+            card.layout().addWidget(meter_row)
 
             slider = QSlider(Qt.Orientation.Horizontal)
             slider.setRange(0, 100)
@@ -243,7 +266,9 @@ class QMainApp(QBaseDesktopApp):
             hint = 'Controlled by ChatMix' if endpoint.mix_group == 'chat' else 'Controlled by media mix'
             if not endpoint.implemented:
                 hint = 'Reserved for future microphone routing'
-            card.layout().addWidget(self._muted_label(hint))
+            detail_label = self._muted_label(hint)
+            card.layout().addWidget(detail_label)
+            self.mixer_detail_labels[endpoint.node_name] = detail_label
             endpoint_grid.addWidget(card, index // 2, index % 2)
 
         balance_card = self._card('ChatMix Balance')
@@ -470,6 +495,7 @@ class QMainApp(QBaseDesktopApp):
         self.service_status_label.setText('D-Bus settings connected')
         self._refresh_dashboard_settings(settings)
         self._refresh_profile_state(settings)
+        self._refresh_mixer_settings(settings)
         self._refresh_routing_state(settings)
         self._refresh_application_routes(settings)
 
@@ -498,6 +524,51 @@ class QMainApp(QBaseDesktopApp):
             if not slider:
                 continue
             slider.setValue(level)
+            value_label = self.mixer_value_labels.get(node_name)
+            if value_label:
+                value_label.setText(f'{level}%')
+
+    def _refresh_mixer_settings(self, settings: dict) -> None:
+        endpoint_states = settings.get('audio_endpoints', [])
+        if not isinstance(endpoint_states, list):
+            endpoint_states = []
+
+        states_by_node = {
+            state.get('node_name'): state
+            for state in endpoint_states
+            if isinstance(state, dict) and isinstance(state.get('node_name'), str)
+        }
+
+        for endpoint in VIRTUAL_AUDIO_ENDPOINTS:
+            state_label = self.mixer_state_labels.get(endpoint.node_name)
+            detail_label = self.mixer_detail_labels.get(endpoint.node_name)
+            if not state_label or not detail_label:
+                continue
+
+            if not endpoint.implemented:
+                state_label.setText('Planned')
+                detail_label.setText('Reserved for future microphone routing')
+                continue
+
+            state = states_by_node.get(endpoint.node_name)
+            if state is None:
+                if self.dbus_wrapper:
+                    state_label.setText('Waiting')
+                    detail_label.setText('Waiting for endpoint state from the D-Bus service.')
+                else:
+                    state_label.setText('Demo')
+                    detail_label.setText('Demo mix level from sample status.')
+                continue
+
+            present = bool(state.get('present'))
+            is_default = bool(state.get('default'))
+            description = state.get('description') or endpoint.node_name
+            if present:
+                state_label.setText('Ready / Default' if is_default else 'Ready')
+                detail_label.setText(f'Output present: {description}')
+            else:
+                state_label.setText('Missing')
+                detail_label.setText('Virtual output not available yet.')
 
     def _refresh_profile_state(self, settings: dict) -> None:
         profiles = settings.get('profiles', {})
@@ -787,6 +858,16 @@ class QMainApp(QBaseDesktopApp):
             #routeState {
                 color: #ffffff;
                 font-size: 18px;
+                font-weight: 700;
+            }
+            #endpointState {
+                color: #dbe7f3;
+                font-size: 13px;
+                font-weight: 700;
+            }
+            #mixerValue {
+                color: #ffffff;
+                font-size: 20px;
                 font-weight: 700;
             }
             #summaryValue {
